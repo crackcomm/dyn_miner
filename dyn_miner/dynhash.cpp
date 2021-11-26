@@ -1,19 +1,15 @@
 #include "dynhash.h"
 
-
-CDynHash::CDynHash() {
-    programLoaded = false;
-}
+CDynHash::CDynHash() { programLoaded = false; }
 
 void CDynHash::load(std::string program) {
-
     for (int i = 0; i < program.size(); i++)
         program[i] = toupper(program[i]);
 
     std::stringstream stream(program);
     std::string line;
     while (std::getline(stream, line)) {
-        int32_t blockTime = atoi(line.c_str()); //TODO - year 2038 problem
+        int32_t blockTime = atoi(line.c_str()); // TODO - year 2038 problem
         bool programDone = false;
         CDynProgram* program = new CDynProgram();
         while (!programDone) {
@@ -27,13 +23,10 @@ void CDynHash::load(std::string program) {
         program->startingTime = blockTime;
         programs.push_back(program);
     }
-
 }
 
-
-std::string CDynHash::calcBlockHeaderHash(uint32_t blockTime, unsigned char* blockHeader, std::string prevBlockHash, std::string merkleRoot)
-{
-
+std::string CDynHash::calcBlockHeaderHash(
+  uint32_t blockTime, unsigned char* blockHeader, std::string prevBlockHash, std::string merkleRoot) {
     bool found = false;
     int i = 0;
     while ((!found) && (i < programs.size()))
@@ -41,15 +34,11 @@ std::string CDynHash::calcBlockHeaderHash(uint32_t blockTime, unsigned char* blo
             i++;
         else
             found = true;
-    if (found)
-        return programs[i]->execute(blockHeader, prevBlockHash, merkleRoot);
-
+    if (found) return programs[i]->execute(blockHeader, prevBlockHash, merkleRoot);
 }
 
 void CDynHash::addProgram(uint32_t startTime, std::string strProgram) {
-
-    if (programLoaded)
-        return;
+    if (programLoaded) return;
 
     CDynProgram* program = new CDynProgram();
     program->startingTime = startTime;
@@ -63,6 +52,4 @@ void CDynHash::addProgram(uint32_t startTime, std::string strProgram) {
     programs.push_back(program);
 
     programLoaded = true;
-
-
 }

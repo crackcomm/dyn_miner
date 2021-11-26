@@ -2,50 +2,49 @@
 #ifdef _WIN32
 // WHISKERZ CODE
 #include "Windows.h"
+
 #include <nlohmann/json.hpp>
+
 #include <thread>
 // WHISKERZ
 #endif
 
 std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlockHash, std::string merkleRoot) {
-
-    //initial input is SHA256 of header data
+    // initial input is SHA256 of header data
 
     CSHA256 ctx;
 
     uint32_t iResult[8];
-  
+
     /*
     for (int i = 0; i < 80; i++)
         printf("%02X", blockHeader[i]);
     printf("\n");
     */
 
-
     ctx.Write(blockHeader, 80);
-    ctx.Finalize((unsigned char*) iResult);
+    ctx.Finalize((unsigned char*)iResult);
 
     /*
     for (int i = 0; i < 8; i++)
         printf("%08X", iResult[i]);
     printf("\n");
     */
-    
 
-
-    int line_ptr = 0;       //program execution line pointer
-    int loop_counter = 0;   //counter for loop execution
-    unsigned int memory_size = 0;    //size of current memory pool
-    uint32_t* memPool = NULL;     //memory pool
+    int line_ptr = 0;             // program execution line pointer
+    int loop_counter = 0;         // counter for loop execution
+    unsigned int memory_size = 0; // size of current memory pool
+    uint32_t* memPool = NULL;     // memory pool
 
     while (line_ptr < program.size()) {
         std::istringstream iss(program[line_ptr]);
-        std::vector<std::string> tokens{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};     //split line into tokens
+        std::vector<std::string> tokens{
+          std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}}; // split line into tokens
 
-        //simple ADD and XOR functions with one constant argument
+        // simple ADD and XOR functions with one constant argument
         if (tokens[0] == "ADD") {
             uint32_t arg1[8];
-            parseHex(tokens[1], (unsigned char*) arg1);
+            parseHex(tokens[1], (unsigned char*)arg1);
 
             for (int i = 0; i < 8; i++)
                 iResult[i] += arg1[i];
@@ -59,9 +58,9 @@ std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlo
                 iResult[i] ^= arg1[i];
         }
 
-        //hash algo which can be optionally repeated several times
+        // hash algo which can be optionally repeated several times
         else if (tokens[0] == "SHA2") {
-            if (tokens.size() == 2) { //includes a loop count
+            if (tokens.size() == 2) { // includes a loop count
                 loop_counter = atoi(tokens[1].c_str());
                 for (int i = 0; i < loop_counter; i++) {
                     if (tokens[0] == "SHA2") {
@@ -74,7 +73,7 @@ std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlo
                 }
             }
 
-            else {                         //just a single run
+            else { // just a single run
                 if (tokens[0] == "SHA2") {
                     unsigned char output[32];
                     ctx.Reset();
@@ -85,10 +84,9 @@ std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlo
             }
         }
 
-        //generate a block of memory based on a hashing algo
+        // generate a block of memory based on a hashing algo
         else if (tokens[0] == "MEMGEN") {
-            if (memPool != NULL)
-                free(memPool);
+            if (memPool != NULL) free(memPool);
             memory_size = atoi(tokens[2].c_str());
             memPool = (uint32_t*)malloc(memory_size * 32);
             for (int i = 0; i < memory_size; i++) {
@@ -103,7 +101,7 @@ std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlo
             }
         }
 
-        //add a constant to every value in the memory block
+        // add a constant to every value in the memory block
         else if (tokens[0] == "MEMADD") {
             if (memPool != NULL) {
                 uint32_t arg1[8];
@@ -116,7 +114,7 @@ std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlo
             }
         }
 
-        //xor a constant with every value in the memory block
+        // xor a constant with every value in the memory block
         else if (tokens[0] == "MEMXOR") {
             if (memPool != NULL) {
                 uint32_t arg1[8];
@@ -129,7 +127,7 @@ std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlo
             }
         }
 
-        //read a value based on an index into the generated block of memory
+        // read a value based on an index into the generated block of memory
         else if (tokens[0] == "READMEM") {
             if (memPool != NULL) {
                 unsigned int index = 0;
@@ -150,7 +148,6 @@ std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlo
             }
         }
 
-
         /*
         printf("line %02d    ", line_ptr);
         unsigned char xx[32];
@@ -159,20 +156,14 @@ std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlo
             printf("%02X", xx[i]);
         printf("\n");
         */
-       
 
         line_ptr++;
-
-
     }
 
-
-    if (memPool != NULL)
-        free(memPool);
+    if (memPool != NULL) free(memPool);
 
     return makeHex((unsigned char*)iResult, 32);
 }
-
 
 std::string CDynProgram::getProgramString() {
     std::string result;
@@ -183,12 +174,10 @@ std::string CDynProgram::getProgramString() {
     return result;
 }
 
-
 void CDynProgram::parseHex(std::string input, unsigned char* output) {
-
     for (int i = 0; i < input.length(); i += 2) {
         unsigned char value = decodeHex(input[i]) * 16 + decodeHex(input[i + 1]);
-        output[i/2] = value;
+        output[i / 2] = value;
     }
 }
 
@@ -199,11 +188,10 @@ unsigned char CDynProgram::decodeHex(char in) {
     else if ((in >= 'A') && (in <= 'F'))
         return in - 'A' + 10;
     else
-        return 0;       //todo raise error
+        return 0; // todo raise error
 }
 
-std::string CDynProgram::makeHex(unsigned char* in, int len)
-{
+std::string CDynProgram::makeHex(unsigned char* in, int len) {
     std::string result;
     for (int i = 0; i < len; i++) {
         result += hexDigit[in[i] / 16];
@@ -212,14 +200,12 @@ std::string CDynProgram::makeHex(unsigned char* in, int len)
     return result;
 }
 
-
 #ifdef GPU_MINER
 void CDynProgram::initOpenCL(int platformID, int computeUnits) {
-
     uint32_t largestMemgen = 0;
     uint32_t byteCodeLen = 0;
-    uint32_t* byteCode = executeGPUAssembleByteCode(&largestMemgen, "0000", "0000", &byteCodeLen);  //only calling to get largestMemgen
-
+    uint32_t* byteCode = executeGPUAssembleByteCode(
+      &largestMemgen, "0000", "0000", &byteCodeLen); // only calling to get largestMemgen
 
     cl_int returnVal;
     cl_platform_id* platform_id = (cl_platform_id*)malloc(16 * sizeof(cl_platform_id));
@@ -229,7 +215,6 @@ void CDynProgram::initOpenCL(int platformID, int computeUnits) {
     kernel = (cl_kernel*)malloc(16 * sizeof(cl_kernel));
     command_queue = (cl_command_queue*)malloc(16 * sizeof(cl_command_queue));
 
-
     clGPUHashResultBuffer = (cl_mem*)malloc(16 * sizeof(cl_mem));
     buffHashResult = (uint32_t**)malloc(16 * sizeof(uint32_t*));
 
@@ -238,7 +223,7 @@ void CDynProgram::initOpenCL(int platformID, int computeUnits) {
 
     clGPUProgramBuffer = (cl_mem*)malloc(16 * sizeof(cl_mem));
 
-    //Initialize context
+    // Initialize context
     returnVal = clGetPlatformIDs(16, platform_id, &ret_num_platforms);
     returnVal = clGetDeviceIDs(platform_id[platformID], CL_DEVICE_TYPE_GPU, 16, openCLDevices, &numOpenCLDevices);
     for (int i = 0; i < numOpenCLDevices; i++) {
@@ -253,24 +238,23 @@ void CDynProgram::initOpenCL(int platformID, int computeUnits) {
         cl_bool littleEndian;
 
         //Get some device capabilities
-        returnVal = clGetDeviceInfo(device_id[deviceID], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(globalMem), &globalMem, &sizeRet);
-        returnVal = clGetDeviceInfo(device_id[deviceID], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(localMem), &localMem, &sizeRet);
-        returnVal = clGetDeviceInfo(device_id[deviceID], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(computeUnits), &computeUnits, &sizeRet);
-        returnVal = clGetDeviceInfo(device_id[deviceID], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(workGroups), &workGroups, &sizeRet);
-        returnVal = clGetDeviceInfo(device_id[deviceID], CL_DEVICE_ENDIAN_LITTLE, sizeof(littleEndian), &littleEndian, &sizeRet);
+        returnVal = clGetDeviceInfo(device_id[deviceID], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(globalMem), &globalMem,
+        &sizeRet); returnVal = clGetDeviceInfo(device_id[deviceID], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(localMem),
+        &localMem, &sizeRet); returnVal = clGetDeviceInfo(device_id[deviceID], CL_DEVICE_MAX_COMPUTE_UNITS,
+        sizeof(computeUnits), &computeUnits, &sizeRet); returnVal = clGetDeviceInfo(device_id[deviceID],
+        CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(workGroups), &workGroups, &sizeRet); returnVal =
+        clGetDeviceInfo(device_id[deviceID], CL_DEVICE_ENDIAN_LITTLE, sizeof(littleEndian), &littleEndian, &sizeRet);
         */
 
-        //computeUnits = numComputeUnits;
+        // computeUnits = numComputeUnits;
 
-        //Read the kernel source
+        // Read the kernel source
         FILE* kernelSourceFile;
 
         kernelSourceFile = fopen("dyn_miner.cl", "r");
         if (!kernelSourceFile) {
-
             fprintf(stderr, "Failed to load kernel.\n");
             return;
-
         }
         fseek(kernelSourceFile, 0, SEEK_END);
         size_t sourceFileLen = ftell(kernelSourceFile) + 1;
@@ -280,11 +264,11 @@ void CDynProgram::initOpenCL(int platformID, int computeUnits) {
         fread(kernelSource, 1, sourceFileLen, kernelSourceFile);
         fclose(kernelSourceFile);
 
-
         cl_program program;
 
-        //Create kernel program
-        program = clCreateProgramWithSource(context[i], 1, (const char**)&kernelSource, (const size_t*)&sourceFileLen, &returnVal);
+        // Create kernel program
+        program = clCreateProgramWithSource(
+          context[i], 1, (const char**)&kernelSource, (const size_t*)&sourceFileLen, &returnVal);
         returnVal = clBuildProgram(program, 1, &openCLDevices[i], NULL, NULL, NULL);
         free(kernelSource);
 
@@ -306,40 +290,38 @@ void CDynProgram::initOpenCL(int platformID, int computeUnits) {
         kernel[i] = clCreateKernel(program, "dyn_hash", &returnVal);
         command_queue[i] = clCreateCommandQueueWithProperties(context[i], openCLDevices[i], NULL, &returnVal);
 
-
-        //Calculate buffer sizes - mempool, hash result buffer, done flag
+        // Calculate buffer sizes - mempool, hash result buffer, done flag
         uint32_t memgenBytes = largestMemgen * 32;
         uint32_t globalMempoolSize = memgenBytes * computeUnits;
-        //TODO - make sure this is less than globalMem
+        // TODO - make sure this is less than globalMem
 
-
-        //Allocate program source buffer and load
+        // Allocate program source buffer and load
         clGPUProgramBuffer[i] = clCreateBuffer(context[i], CL_MEM_READ_WRITE, byteCodeLen, NULL, &returnVal);
         returnVal = clSetKernelArg(kernel[i], 0, sizeof(clGPUProgramBuffer[i]), (void*)&clGPUProgramBuffer[i]);
-        returnVal = clEnqueueWriteBuffer(command_queue[i], clGPUProgramBuffer[i], CL_TRUE, 0, byteCodeLen, byteCode, 0, NULL, NULL);
+        returnVal = clEnqueueWriteBuffer(
+          command_queue[i], clGPUProgramBuffer[i], CL_TRUE, 0, byteCodeLen, byteCode, 0, NULL, NULL);
 
-
-        //Allocate global memory buffer and zero
+        // Allocate global memory buffer and zero
         cl_mem clGPUMemGenBuffer = clCreateBuffer(context[i], CL_MEM_READ_WRITE, globalMempoolSize, NULL, &returnVal);
         returnVal = clSetKernelArg(kernel[i], 1, sizeof(clGPUMemGenBuffer), (void*)&clGPUMemGenBuffer);
         /*
         unsigned char* buffMemGen = (unsigned char*)malloc(globalMempoolSize);
         memset(buffMemGen, 0, globalMempoolSize);
-        returnVal = clEnqueueWriteBuffer(command_queue, clGPUMemGenBuffer, CL_TRUE, 0, globalMempoolSize, buffMemGen, 0, NULL, NULL);
+        returnVal = clEnqueueWriteBuffer(command_queue, clGPUMemGenBuffer, CL_TRUE, 0, globalMempoolSize, buffMemGen, 0,
+        NULL, NULL);
         */
 
-
-        //Size of memgen area - this is the number of 8 uint blocks
+        // Size of memgen area - this is the number of 8 uint blocks
         returnVal = clSetKernelArg(kernel[i], 2, sizeof(largestMemgen), (void*)&largestMemgen);
 
-
-        //Allocate hash result buffer and zero
+        // Allocate hash result buffer and zero
         hashResultSize = computeUnits * 32;
         clGPUHashResultBuffer[i] = clCreateBuffer(context[i], CL_MEM_READ_WRITE, hashResultSize, NULL, &returnVal);
         returnVal = clSetKernelArg(kernel[i], 3, sizeof(clGPUHashResultBuffer[i]), (void*)&clGPUHashResultBuffer[i]);
         buffHashResult[i] = (uint32_t*)malloc(hashResultSize);
         memset(buffHashResult[i], 0, hashResultSize);
-        returnVal = clEnqueueWriteBuffer(command_queue[i], clGPUHashResultBuffer[i], CL_TRUE, 0, hashResultSize, buffHashResult[i], 0, NULL, NULL);
+        returnVal = clEnqueueWriteBuffer(
+          command_queue[i], clGPUHashResultBuffer[i], CL_TRUE, 0, hashResultSize, buffHashResult[i], 0, NULL, NULL);
 
         /*
         //Allocate found flag buffer and zero
@@ -348,45 +330,49 @@ void CDynProgram::initOpenCL(int platformID, int computeUnits) {
         returnVal = clSetKernelArg(kernel, 4, sizeof(clGPUDoneBuffer), (void*)&clGPUDoneBuffer);
         unsigned char* buffDoneFlag = (unsigned char*)malloc(doneFlagSize);
         memset(buffDoneFlag, 0, doneFlagSize);
-        returnVal = clEnqueueWriteBuffer(command_queue, clGPUDoneBuffer, CL_TRUE, 0, doneFlagSize, buffDoneFlag, 0, NULL, NULL);
+        returnVal = clEnqueueWriteBuffer(command_queue, clGPUDoneBuffer, CL_TRUE, 0, doneFlagSize, buffDoneFlag, 0,
+        NULL, NULL);
         */
 
-        //Allocate header buffer and load
+        // Allocate header buffer and load
         headerBuffSize = computeUnits * 80;
         clGPUHeaderBuffer[i] = clCreateBuffer(context[i], CL_MEM_READ_WRITE, headerBuffSize, NULL, &returnVal);
         returnVal = clSetKernelArg(kernel[i], 4, sizeof(clGPUHeaderBuffer[i]), (void*)&clGPUHeaderBuffer[i]);
         buffHeader[i] = (unsigned char*)malloc(headerBuffSize);
         memset(buffHeader[i], 0, headerBuffSize);
-        returnVal = clEnqueueWriteBuffer(command_queue[i], clGPUHeaderBuffer[i], CL_TRUE, 0, headerBuffSize, buffHeader[i], 0, NULL, NULL);
+        returnVal = clEnqueueWriteBuffer(
+          command_queue[i], clGPUHeaderBuffer[i], CL_TRUE, 0, headerBuffSize, buffHeader[i], 0, NULL, NULL);
 
-
-
-        //Allocate SHA256 scratch buffer - this probably isnt needed if properly optimized
+        // Allocate SHA256 scratch buffer - this probably isnt needed if properly optimized
         uint32_t scratchBuffSize = computeUnits * 32;
         cl_mem clGPUScratchBuffer = clCreateBuffer(context[i], CL_MEM_READ_WRITE, scratchBuffSize, NULL, &returnVal);
         returnVal = clSetKernelArg(kernel[i], 5, sizeof(clGPUScratchBuffer), (void*)&clGPUScratchBuffer);
         /*
         unsigned char* buffScratch = (unsigned char*)malloc(scratchBuffSize);
         memset(buffScratch, 0, scratchBuffSize);
-        returnVal = clEnqueueWriteBuffer(command_queue, clGPUScratchBuffer, CL_TRUE, 0, scratchBuffSize, buffScratch, 0, NULL, NULL);
+        returnVal = clEnqueueWriteBuffer(command_queue, clGPUScratchBuffer, CL_TRUE, 0, scratchBuffSize, buffScratch, 0,
+        NULL, NULL);
         */
     }
-
-
 }
 
+// returns 1 if timeout or 0 if successful
+int CDynProgram::executeGPU(
+  unsigned char* blockHeader,
+  std::string prevBlockHash,
+  std::string merkleRoot,
+  unsigned char* nativeTarget,
+  uint32_t* resultNonce,
+  int numComputeUnits,
+  uint32_t serverNonce,
+  int gpuIndex,
+  CDynProgram* dynProgram) { // WHISKERZ
 
-//returns 1 if timeout or 0 if successful
-int CDynProgram::executeGPU(unsigned char* blockHeader, std::string prevBlockHash, std::string merkleRoot, unsigned char* nativeTarget, uint32_t *resultNonce, int numComputeUnits, uint32_t serverNonce, int gpuIndex, CDynProgram* dynProgram) { // WHISKERZ
-
-
-
-
-    //assmeble bytecode for program
-    //allocate global memory buffer based on largest size of memgen
-    //allocate result hash buffer for each compute unit
-    //allocate flag to indicate hash found for each compute unit (this is for later)
-    //call kernel code with program, block header, memory buffer, result buffer and flag as params
+    // assmeble bytecode for program
+    // allocate global memory buffer based on largest size of memgen
+    // allocate result hash buffer for each compute unit
+    // allocate flag to indicate hash found for each compute unit (this is for later)
+    // call kernel code with program, block header, memory buffer, result buffer and flag as params
 
     uint32_t junk;
     uint32_t byteCodeLen = 0;
@@ -394,8 +380,8 @@ int CDynProgram::executeGPU(unsigned char* blockHeader, std::string prevBlockHas
 
     cl_int returnVal;
 
-    returnVal = clEnqueueWriteBuffer(command_queue[gpuIndex], clGPUProgramBuffer[gpuIndex], CL_TRUE, 0, byteCodeLen, byteCode, 0, NULL, NULL);
-
+    returnVal = clEnqueueWriteBuffer(
+      command_queue[gpuIndex], clGPUProgramBuffer[gpuIndex], CL_TRUE, 0, byteCodeLen, byteCode, 0, NULL, NULL);
 
     time_t start;
     time(&start);
@@ -417,25 +403,41 @@ int CDynProgram::executeGPU(unsigned char* blockHeader, std::string prevBlockHas
     int foundIndex = -1;
 
     uint32_t startNonce = nonce;
-    dynProgram->timeout = false; //WHISKERZ
-    while ((!found) && (!dynProgram->timeout) && (!globalFound) && (!globalTimeout)) { //WHISKERZ
+    dynProgram->timeout = false;                                                       // WHISKERZ
+    while ((!found) && (!dynProgram->timeout) && (!globalFound) && (!globalTimeout)) { // WHISKERZ
 
         for (int i = 0; i < numComputeUnits; i++) {
             uint32_t nonce1 = nonce + i;
             memcpy(&buffHeader[gpuIndex][i * 80 + 76], &nonce1, 4);
         }
 
-        returnVal = clEnqueueWriteBuffer(command_queue[gpuIndex], clGPUHeaderBuffer[gpuIndex], CL_TRUE, 0, headerBuffSize, buffHeader[gpuIndex], 0, NULL, NULL);
+        returnVal = clEnqueueWriteBuffer(
+          command_queue[gpuIndex],
+          clGPUHeaderBuffer[gpuIndex],
+          CL_TRUE,
+          0,
+          headerBuffSize,
+          buffHeader[gpuIndex],
+          0,
+          NULL,
+          NULL);
 
         size_t globalWorkSize = numComputeUnits;
         size_t localWorkSize = 1;
-        returnVal = clEnqueueNDRangeKernel(command_queue[gpuIndex], kernel[gpuIndex], 1, NULL, &globalWorkSize, &localWorkSize, 0, NULL, NULL);
+        returnVal = clEnqueueNDRangeKernel(
+          command_queue[gpuIndex], kernel[gpuIndex], 1, NULL, &globalWorkSize, &localWorkSize, 0, NULL, NULL);
         returnVal = clFinish(command_queue[gpuIndex]);
 
-        returnVal = clEnqueueReadBuffer(command_queue[gpuIndex], clGPUHashResultBuffer[gpuIndex], CL_TRUE, 0, hashResultSize, buffHashResult[gpuIndex], 0, NULL, NULL);
-
-
-
+        returnVal = clEnqueueReadBuffer(
+          command_queue[gpuIndex],
+          clGPUHashResultBuffer[gpuIndex],
+          CL_TRUE,
+          0,
+          hashResultSize,
+          buffHashResult[gpuIndex],
+          0,
+          NULL,
+          NULL);
 
         int k = 0;
         while ((!found) && (k < numComputeUnits)) {
@@ -453,7 +455,6 @@ int CDynProgram::executeGPU(unsigned char* blockHeader, std::string prevBlockHas
                 else
                     done = true;
 
-
             bool better = false;
             done = false;
             i = 0;
@@ -465,9 +466,7 @@ int CDynProgram::executeGPU(unsigned char* blockHeader, std::string prevBlockHas
                 else
                     done = true;
 
-            if (better)
-                memcpy(best, hashA, 32);
-
+            if (better) memcpy(best, hashA, 32);
 
             if (ok)
                 found = true;
@@ -475,20 +474,21 @@ int CDynProgram::executeGPU(unsigned char* blockHeader, std::string prevBlockHas
                 k++;
         }
 
-
         time_t now;
         time(&now);
-        if (dynProgram->checkingHeight == false) { std::thread([&]() { checkBlockHeight(dynProgram); }).detach(); } // WHISKERZ
+        if (dynProgram->checkingHeight == false) {
+            std::thread([&]() { checkBlockHeight(dynProgram); }).detach();
+        } // WHISKERZ
         if ((now - lastreport) >= 3) {
             time_t current;
             time(&current);
             long long diff = current - start;
-            //printf("GPU %d hashrate: %8.2f\n", gpuIndex, (float)(nonce - startNonce) / float(diff));
+            // printf("GPU %d hashrate: %8.2f\n", gpuIndex, (float)(nonce - startNonce) / float(diff));
             dynProgram->outputStats(dynProgram, current, start, (nonce - startNonce)); // WHISKERZ
 
-            //if (now - start > 18) {
-                //dynProgram->timeout = true; //WHISKERZ
-                //printf("Checking for stale block\n");
+            // if (now - start > 18) {
+            // dynProgram->timeout = true; //WHISKERZ
+            // printf("Checking for stale block\n");
             //}
 
             lastreport = now;
@@ -498,12 +498,10 @@ int CDynProgram::executeGPU(unsigned char* blockHeader, std::string prevBlockHas
         if (found) {
             foundIndex = k;
             globalFound = true;
-        }
-        else {
+        } else {
             nonce += numComputeUnits;
             globalNonceCount += numComputeUnits;
         }
-
     }
 
     if (foundIndex != -1) {
@@ -514,25 +512,21 @@ int CDynProgram::executeGPU(unsigned char* blockHeader, std::string prevBlockHas
     return false;
 }
 
-
-
-
-uint32_t* CDynProgram::executeGPUAssembleByteCode(uint32_t* largestMemgen, std::string prevBlockHash, std::string merkleRoot, uint32_t* byteCodeLen) {
-
+uint32_t* CDynProgram::executeGPUAssembleByteCode(
+  uint32_t* largestMemgen, std::string prevBlockHash, std::string merkleRoot, uint32_t* byteCodeLen) {
     std::vector<uint32_t> code;
 
-
-
-    int line_ptr = 0;       //program execution line pointer
-    int loop_counter = 0;   //counter for loop execution
-    unsigned int memory_size = 0;    //size of current memory pool
-    uint32_t* memPool = NULL;     //memory pool
+    int line_ptr = 0;             // program execution line pointer
+    int loop_counter = 0;         // counter for loop execution
+    unsigned int memory_size = 0; // size of current memory pool
+    uint32_t* memPool = NULL;     // memory pool
 
     while (line_ptr < program.size()) {
         std::istringstream iss(program[line_ptr]);
-        std::vector<std::string> tokens{ std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{} };     //split line into tokens
+        std::vector<std::string> tokens{
+          std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}}; // split line into tokens
 
-        //simple ADD and XOR functions with one constant argument
+        // simple ADD and XOR functions with one constant argument
         if (tokens[0] == "ADD") {
             uint32_t arg1[8];
             parseHex(tokens[1], (unsigned char*)arg1);
@@ -549,31 +543,30 @@ uint32_t* CDynProgram::executeGPUAssembleByteCode(uint32_t* largestMemgen, std::
                 code.push_back(arg1[i]);
         }
 
-        //hash algo which can be optionally repeated several times
+        // hash algo which can be optionally repeated several times
         else if (tokens[0] == "SHA2") {
-            if (tokens.size() == 2) { //includes a loop count
+            if (tokens.size() == 2) { // includes a loop count
                 loop_counter = atoi(tokens[1].c_str());
                 code.push_back(HASHOP_SHA_LOOP);
                 code.push_back(loop_counter);
             }
 
-            else {                         //just a single run
+            else { // just a single run
                 if (tokens[0] == "SHA2") {
                     code.push_back(HASHOP_SHA_SINGLE);
                 }
             }
         }
 
-        //generate a block of memory based on a hashing algo
+        // generate a block of memory based on a hashing algo
         else if (tokens[0] == "MEMGEN") {
             memory_size = atoi(tokens[2].c_str());
             code.push_back(HASHOP_MEMGEN);
             code.push_back(memory_size);
-            if (memory_size > *largestMemgen)
-                *largestMemgen = memory_size;
+            if (memory_size > *largestMemgen) *largestMemgen = memory_size;
         }
 
-        //add a constant to every value in the memory block
+        // add a constant to every value in the memory block
         else if (tokens[0] == "MEMADD") {
             code.push_back(HASHOP_MEMADD);
             uint32_t arg1[8];
@@ -582,7 +575,7 @@ uint32_t* CDynProgram::executeGPUAssembleByteCode(uint32_t* largestMemgen, std::
                 code.push_back(arg1[j]);
         }
 
-        //xor a constant with every value in the memory block
+        // xor a constant with every value in the memory block
         else if (tokens[0] == "MEMXOR") {
             code.push_back(HASHOP_MEMXOR);
             uint32_t arg1[8];
@@ -591,7 +584,7 @@ uint32_t* CDynProgram::executeGPUAssembleByteCode(uint32_t* largestMemgen, std::
                 code.push_back(arg1[j]);
         }
 
-        //read a value based on an index into the generated block of memory
+        // read a value based on an index into the generated block of memory
         else if (tokens[0] == "READMEM") {
             code.push_back(HASHOP_MEM_SELECT);
             if (tokens[1] == "MERKLE") {
@@ -619,7 +612,6 @@ uint32_t* CDynProgram::executeGPUAssembleByteCode(uint32_t* largestMemgen, std::
     *byteCodeLen = code.size() * 4;
 
     return result;
-
 }
 #endif
 
@@ -694,12 +686,10 @@ bool CDynProgram::checkBlockHeight(CDynProgram* dynProgram)
 }
 */
 
-
 #ifdef _WIN32
 static std::string convertSecondsToUptime(int n);
 
-bool CDynProgram::outputStats(CDynProgram* dynProgram, time_t now, time_t start, uint32_t nonce)
-{
+bool CDynProgram::outputStats(CDynProgram* dynProgram, time_t now, time_t start, uint32_t nonce) {
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
     struct tm* timeinfo;
@@ -727,8 +717,7 @@ bool CDynProgram::outputStats(CDynProgram* dynProgram, time_t now, time_t start,
     float coinsPerMinute = 0;
     if (dynProgram->acceptedBlocks > 0) {
         coinsPerMinute = (float)dynProgram->acceptedBlocks / uptimeMinutes;
-    }
-    else {
+    } else {
         coinsPerMinute = 0;
     }
 
@@ -758,11 +747,10 @@ bool CDynProgram::outputStats(CDynProgram* dynProgram, time_t now, time_t start,
     printf("DynMiner %s %s\n", minerVersion, dynProgram->minerType);
     SetConsoleTextAttribute(hConsole, LIGHTGRAY);
 
-    return(true);
+    return (true);
 }
 
-static std::string convertSecondsToUptime(int n)
-{
+static std::string convertSecondsToUptime(int n) {
     int days = n / (24 * 3600);
 
     n = n % (24 * 3600);
@@ -776,20 +764,17 @@ static std::string convertSecondsToUptime(int n)
 
     std::string uptimeString;
     if (days > 0) {
-        uptimeString = std::to_string(days) + "d" + std::to_string(hours) + "h" + std::to_string(minutes) + "m" + std::to_string(seconds) + "s";
-    }
-    else if (hours > 0) {
+        uptimeString = std::to_string(days) + "d" + std::to_string(hours) + "h" + std::to_string(minutes) + "m"
+                       + std::to_string(seconds) + "s";
+    } else if (hours > 0) {
         uptimeString = std::to_string(hours) + "h" + std::to_string(minutes) + "m" + std::to_string(seconds) + "s";
-    }
-    else if (minutes > 0) {
+    } else if (minutes > 0) {
         uptimeString = std::to_string(minutes) + "m" + std::to_string(seconds) + "s";
-    }
-    else {
+    } else {
         uptimeString = std::to_string(seconds) + "s";
     }
 
-    return(uptimeString);
+    return (uptimeString);
 }
 #endif
 // END WHISKERZ
-
