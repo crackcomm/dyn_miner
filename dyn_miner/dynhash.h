@@ -1,9 +1,8 @@
 #pragma once
-#include <map>
 
 #include "dynprogram.h"
 
-
+#include <map>
 
 class CDynHash {
 

@@ -1,4 +1,6 @@
 #pragma once
+#include "dyn_miner.h"
+
 #include <vector>
 #include <string>
 #include "common.h"
@@ -8,9 +10,11 @@
 #include <sstream>
 #include <algorithm>
 #include <iterator>
+
+#ifdef GPU_MINER
 #include <CL/cl_platform.h>
 #include <CL/cl.h>
-#include "dyn_miner.h"
+#endif
 
 // WHISKERZ CODE
 
@@ -59,6 +63,7 @@ public:
     int32_t startingTime;
     std::vector<std::string> program;
 
+#ifdef GPU_MINER
     uint32_t numOpenCLDevices;
     cl_device_id* openCLDevices;
 
@@ -75,26 +80,25 @@ public:
     cl_kernel* kernel;
     cl_command_queue* command_queue;
 
+    void initOpenCL(int platformID, int computeUnits );
+    int executeGPU(unsigned char* blockHeader, std::string prevBlockHash, std::string merkleRoot, unsigned char* nativeTarget, uint32_t* resultNonce, int numComputeUnits, uint32_t serverNonce, int gpuIndex, CDynProgram* dynProgram); //WHISKERZ
+    uint32_t* executeGPUAssembleByteCode(uint32_t* largestMemgen, std::string prevBlockHash, std::string merkleRoot, uint32_t* byteCodeLen);
+#endif
 
     const std::vector<char> hexDigit = {'0', '1', '2', '3', '4','5','6','7','8','9','A','B','C','D','E','F'};
 
     std::string execute(unsigned char* blockHeader, std::string prevBlockHash, std::string merkleRoot);
-
-
-    void initOpenCL(int platformID, int computeUnits );
-    int executeGPU(unsigned char* blockHeader, std::string prevBlockHash, std::string merkleRoot, unsigned char* nativeTarget, uint32_t* resultNonce, int numComputeUnits, uint32_t serverNonce, int gpuIndex, CDynProgram* dynProgram); //WHISKERZ
         
-    uint32_t* executeGPUAssembleByteCode(uint32_t* largestMemgen, std::string prevBlockHash, std::string merkleRoot, uint32_t* byteCodeLen);
-
     std::string getProgramString();
     void parseHex(std::string input, unsigned char* output);
     unsigned char decodeHex(char in);
     std::string makeHex(unsigned char* in, int len);
 
     // WHISKERZ CODE
-    bool checkBlockHeight(CDynProgram*);
+    //bool checkBlockHeight(CDynProgram*);
+#ifdef _WIN32
     bool outputStats(CDynProgram*, time_t, time_t, uint32_t);
-    std::string convertSecondsToUptime(int);
+#endif
     time_t miningStartTime;
     bool checkingHeight = false;
     bool timeout = false;

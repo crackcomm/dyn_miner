@@ -1,25 +1,12 @@
 // dyn_miner.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <iostream>
-
-#include <thread>
-
-#ifdef __linux__
-#include "json.hpp"
-#include "curl/curl.h"
-#endif
-
-#ifdef _WIN32
-#include <nlohmann/json.hpp>
-#include <curl\curl.h>
-#endif
-
-
 #include "sha256.h"
 
 #include "common.h"
 #include "dynhash.h"
+
+#include <nlohmann/json.hpp>
 
 #ifdef __linux__
 #include <linux/unistd.h>       /* for _syscallX macros/related stuff */
@@ -31,6 +18,8 @@
 //#include "process.h"
 #endif
 
+#include <iostream>
+#include <thread>
 
 void diff_to_target(uint32_t* target, double diff);
 void bin2hex(char* s, const unsigned char* p, size_t len);
@@ -43,10 +32,12 @@ size_t address_to_script(unsigned char* out, size_t outsz, const char* addr);
 extern void sha256d(unsigned char* hash, const unsigned char* data, int len);
 
 // WHISKERZ CODE
+#ifdef _WIN32
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-bool checkBlockHeight(CDynProgram*);
-bool validateSubmission(CDynProgram*, uint32_t);
-bool checkingHeightCPU = false;
+#endif
+//bool checkBlockHeight(CDynProgram*);
+//bool validateSubmission(CDynProgram*, uint32_t);
+//bool checkingHeightCPU = false;
 CDynProgram* dynProgram;
 // WHISKERZ
 
@@ -96,6 +87,7 @@ int GPUplatformID;
 uint32_t serverNonce;   //nonce from pool server, if used
 
 
+#ifdef GPU_MINER
 void doGPUHash(int gpuIndex, unsigned char* result) {
 
     uint32_t resultNonce;
@@ -113,7 +105,7 @@ void doGPUHash(int gpuIndex, unsigned char* result) {
     }
 
 }
-
+#endif
 
 void doHash(void* result) {
 
@@ -254,6 +246,8 @@ int main(int argc, char * argv[])
     printf("\n");
     */
 
+    /*
+     * TODO(crackcomm): GPU support
     cl_int returnVal;
     cl_platform_id* platform_id = (cl_platform_id*)malloc(16 * sizeof(cl_platform_id));
     cl_device_id* device_id = (cl_device_id*)malloc(16 * sizeof(cl_device_id));
@@ -279,6 +273,7 @@ int main(int argc, char * argv[])
     }
 
     printf("\n");
+    */
 
 
     if (argc != 9) {
@@ -324,14 +319,7 @@ int main(int argc, char * argv[])
 
     hashFunction = new CDynHash();
 
-
-    CURL* curl;
-    CURLcode res;
-
-    curl_global_init(CURL_GLOBAL_ALL);
-
     while (true) {
-        curl = curl_easy_init();
         if (curl) {
             time_t t;
             time(&t);
@@ -703,9 +691,11 @@ int main(int argc, char * argv[])
                     time(&start);
 
                     while ((!globalFound) && (!globalTimeout)) {
+                        /*
                         if (checkingHeightCPU == false) {
                             std::thread([&]() { checkBlockHeight(dynProgram); }).detach(); // WHISKERZ
                         }
+                        */
 
                         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -816,19 +806,9 @@ int main(int argc, char * argv[])
                         }
                     }
                 }
-
             }
-
-            curl_easy_cleanup(curl);
-
         }
     }
-
-    free(chunk.memory);
-
-
-    curl_global_cleanup();
-
 }
     
 
@@ -1967,6 +1947,7 @@ int scanhash_sha256d(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 
 */
 
+/*
 // WHISKERZ CODE
 
 bool checkBlockHeight(CDynProgram* dynProgram)
@@ -2088,6 +2069,7 @@ bool validateSubmission(CDynProgram* dynProgram, uint32_t block) {
     return(true);
 }
 // END WHISKERZ
+*/
 
 
 

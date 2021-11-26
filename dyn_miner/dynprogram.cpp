@@ -1,10 +1,11 @@
 #include "dynprogram.h"
+#ifdef _WIN32
 // WHISKERZ CODE
 #include "Windows.h"
-#include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <thread>
 // WHISKERZ
+#endif
 
 std::string CDynProgram::execute(unsigned char* blockHeader, std::string prevBlockHash, std::string merkleRoot) {
 
@@ -212,6 +213,7 @@ std::string CDynProgram::makeHex(unsigned char* in, int len)
 }
 
 
+#ifdef GPU_MINER
 void CDynProgram::initOpenCL(int platformID, int computeUnits) {
 
     uint32_t largestMemgen = 0;
@@ -619,7 +621,9 @@ uint32_t* CDynProgram::executeGPUAssembleByteCode(uint32_t* largestMemgen, std::
     return result;
 
 }
+#endif
 
+/*
 // WHISKERZ CODE:
 
 struct MemoryStruct {
@@ -634,7 +638,6 @@ static size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, voi
 
     char* ptr = (char*)realloc(mem->memory, mem->size + realsize + 1);
     if (ptr == NULL) {
-        /* out of memory! */
         printf("not enough memory (realloc returned NULL)\n");
         return 0;
     }
@@ -646,7 +649,6 @@ static size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, voi
 
     return realsize;
 }
-
 
 bool CDynProgram::checkBlockHeight(CDynProgram* dynProgram)
 {
@@ -690,7 +692,11 @@ bool CDynProgram::checkBlockHeight(CDynProgram* dynProgram)
     dynProgram->checkingHeight = false;
     return(true);
 }
+*/
 
+
+#ifdef _WIN32
+static std::string convertSecondsToUptime(int n);
 
 bool CDynProgram::outputStats(CDynProgram* dynProgram, time_t now, time_t start, uint32_t nonce)
 {
@@ -755,7 +761,7 @@ bool CDynProgram::outputStats(CDynProgram* dynProgram, time_t now, time_t start,
     return(true);
 }
 
-std::string CDynProgram::convertSecondsToUptime(int n)
+static std::string convertSecondsToUptime(int n)
 {
     int days = n / (24 * 3600);
 
@@ -784,5 +790,6 @@ std::string CDynProgram::convertSecondsToUptime(int n)
 
     return(uptimeString);
 }
+#endif
 // END WHISKERZ
 
