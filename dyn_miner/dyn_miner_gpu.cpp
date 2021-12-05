@@ -386,16 +386,14 @@ void CDynProgramGPU::startMiner(
           NULL,
           NULL);
 
-        int k = 0;
-        while (k < numComputeUnits) {
+        for (int k = 0; k < numComputeUnits; k++) {
+            uint32_t nonce1 = nonce + k;
             memcpy(hashA, &kernel.buffHashResult[gpuIndex][k * 8], 32);
-
             uint64_t hash_int = *(uint64_t*)&hashA[24];
             if (hash_int < work.share_target) {
                 const share_t share = work.share((char*)&kernel.buffHeader[gpuIndex][k * 80 + 76]);
                 shares.append(share);
             }
-            k++;
         }
         nonce += numComputeUnits;
         shares.stats.nonce_count += numComputeUnits;
