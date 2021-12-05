@@ -9,6 +9,7 @@
 #include "util/hex.h"
 #include "util/sockets.h"
 #include "util/stats.h"
+#include "util/rand.h"
 
 #ifdef GPU_MINER
 #include "dyn_miner_gpu.h"
@@ -59,21 +60,6 @@ struct dyn_miner {
     }
 };
 
-uint32_t rand_nonce() {
-    time_t t;
-    time(&t);
-    srand(t);
-
-#ifdef _WIN32
-    uint32_t nonce = rand() * t * GetTickCount();
-#endif
-
-#ifdef __linux__
-    uint32_t nonce = rand() * t;
-#endif
-    return nonce;
-}
-
 void dyn_miner::wait_for_work() {
     while (shared_work.num.load(std::memory_order_relaxed) == 0) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -91,7 +77,7 @@ void dyn_miner::start_gpu(uint32_t gpuIndex) {
 
 void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index) {
     work_t work = shared_work.clone();
-    uint32_t nonce = (shares.stats.nonce_count.load(std::memory_order_relaxed) + rand_nonce()) * (index + 1);
+    uint32_t nonce = (shares.stats.nonce_count + rand_nonce()) * (index + 1);
 
     unsigned char header[80];
     memcpy(header, work.native_data, 80);

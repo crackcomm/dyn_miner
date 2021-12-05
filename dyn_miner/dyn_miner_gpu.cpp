@@ -4,6 +4,7 @@
 #include "dyn_stratum.h"
 #include "util/hex.h"
 #include "util/stats.h"
+#include "util/rand.h"
 
 #include <iterator>
 #include <sstream>
@@ -329,11 +330,7 @@ void CDynProgramGPU::startMiner(
     load_byte_code(work);
     cl_int returnVal;
 
-    time_t start;
-    time(&start);
-
-    srand(start);
-    uint32_t nonce = gpuIndex * 2 * start;
+    uint32_t nonce = (shares.stats.nonce_count + rand_nonce()) * (gpuIndex + 1);
     unsigned char hashA[32];
 
     for (int i = 0; i < numComputeUnits; i++)
@@ -391,8 +388,6 @@ void CDynProgramGPU::startMiner(
 
         int k = 0;
         while (k < numComputeUnits) {
-            bool ok = false;
-            bool done = false;
             int i = 0;
 
             memcpy(hashA, &kernel.buffHashResult[gpuIndex][k * 8], 32);
@@ -401,8 +396,8 @@ void CDynProgramGPU::startMiner(
             if (hash_int < work.share_target) {
                 const share_t share = work.share((char*)&kernel.buffHeader[gpuIndex][k * 80 + 76]);
                 shares.append(share);
-            } else
-                k++;
+            }
+            k++;
         }
         nonce += numComputeUnits;
         shares.stats.nonce_count += numComputeUnits;
