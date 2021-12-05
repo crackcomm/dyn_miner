@@ -387,8 +387,7 @@ void CDynProgramGPU::startMiner(
           NULL);
 
         for (int k = 0; k < numComputeUnits; k++) {
-            memcpy(hashA, &kernel.buffHashResult[gpuIndex][k * 8], 32);
-            uint64_t hash_int = *(uint64_t*)&hashA[24];
+            uint64_t hash_int = kernel.buffHashResult[gpuIndex][k * 8 + 3];
             if (hash_int < work.share_target) {
                 shares.append(work.share(nonce + k));
             }
