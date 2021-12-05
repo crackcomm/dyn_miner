@@ -388,8 +388,6 @@ void CDynProgramGPU::startMiner(
 
         int k = 0;
         while (k < numComputeUnits) {
-            int i = 0;
-
             memcpy(hashA, &kernel.buffHashResult[gpuIndex][k * 8], 32);
 
             uint64_t hash_int = *(uint64_t*)&hashA[24];
