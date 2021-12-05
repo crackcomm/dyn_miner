@@ -103,6 +103,12 @@ struct work_t {
         return share;
     }
 
+    share_t share(uint32_t nonce) const {
+        share_t share{.job_num = num, .job_id = job_id, .hex_ntime = hex_ntime};
+        memcpy(share.nonce, &nonce, 4);
+        return share;
+    }
+
     void set_difficulty(double diff) {
         diff = std::max(diff, 1.0);
         share_target = share_to_target(diff) * diff_multiplier;
