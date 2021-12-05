@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "sha256.h"
-#include "common.h"
+#include "util/common.h"
 
 #include <assert.h>
 #include <string.h>
@@ -718,3 +718,15 @@ void SHA256D64(unsigned char* out, const unsigned char* in, size_t blocks)
         --blocks;
     }
 }
+
+void sha256d(unsigned char* hash, const unsigned char* data, int len) {
+    static unsigned char temp[32] = {0};
+    CSHA256 ctx{};
+    ctx.Write(data, len);
+    ctx.Finalize(temp);
+    ctx.Reset();
+    ctx.Write(temp, 32);
+    ctx.Finalize(hash);
+    ctx.Reset();
+}
+

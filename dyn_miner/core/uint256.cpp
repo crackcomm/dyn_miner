@@ -8,7 +8,7 @@
 #include <string.h>
 
 #ifdef __linux__ 
-#define sprintf_s sprintf
+#define sprintf_s snprintf
 #endif
 
 template <unsigned int BITS>
