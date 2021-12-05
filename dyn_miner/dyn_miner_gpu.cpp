@@ -405,6 +405,6 @@ void CDynProgramGPU::startMiner(
                 k++;
         }
         nonce += numComputeUnits;
-        shares.nonce_count += numComputeUnits;
+        shares.stats.nonce_count += numComputeUnits;
     }
 }

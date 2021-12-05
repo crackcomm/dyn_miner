@@ -4,6 +4,7 @@
 #include "util/hex.h" // TODO: remove, only for debug
 
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <queue>
@@ -17,6 +18,13 @@ struct rpc_config_t {
     char* user;
     char* password;
     std::string miner_pay_to_addr;
+};
+
+struct stats_t {
+    std::atomic<uint32_t> nonce_count{};
+    std::atomic<uint32_t> share_count{};
+    std::atomic<uint32_t> accepted_share_count{};
+    std::atomic<uint32_t> latest_diff{};
 };
 
 // mining.submit:
@@ -35,10 +43,7 @@ struct share_t {
 struct shares_t {
     std::queue<share_t> queue;
     std::mutex mutex;
-    std::atomic<uint32_t> nonce_count{};
-    std::atomic<uint32_t> share_count{};
-    std::atomic<uint32_t> accepted_share_count{};
-    std::atomic<uint32_t> latest_diff{};
+    stats_t stats{};
     std::atomic_flag notify = ATOMIC_FLAG_INIT;
 
     std::optional<share_t> pop() {
@@ -54,7 +59,7 @@ struct shares_t {
     void append(share_t share) {
         std::unique_lock<std::mutex> _lock(mutex);
         queue.push(share);
-        share_count++;
+        stats.share_count++;
         [[maybe_unused]] bool value = notify.test_and_set(std::memory_order_acquire);
         notify.notify_one();
     }

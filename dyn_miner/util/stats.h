@@ -29,7 +29,7 @@ constexpr float gb = 1073741824;
 constexpr float mb = 1048576;
 constexpr float kb = 1024;
 
-static std::string convertSecondsToUptime(int n);
+static std::string seconds_to_uptime(int n);
 
 #ifdef _WIN32
 #define SET_COLOR(color) SetConsoleTextAttribute(hConsole, color);
@@ -37,47 +37,37 @@ static std::string convertSecondsToUptime(int n);
 #define SET_COLOR(color)
 #endif
 
-static bool outputStats(time_t now, time_t start, shares_t& shares) {
+static bool output_stats(time_t now, time_t start, stats_t& stats) {
 #ifdef _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 #endif
-    uint32_t nonce = shares.nonce_count.load(std::memory_order_relaxed);
+    uint32_t nonce = stats.nonce_count.load(std::memory_order_relaxed);
 
     struct tm* timeinfo;
     char timestamp[80];
     timeinfo = localtime(&now);
     strftime(timestamp, 80, "%F %T", timeinfo);
-    char rateDisplay[256];
+    char display[256];
     float hashrate = (float)nonce / (float)(now - start);
     if (hashrate >= tb)
-        sprintf(rateDisplay, "%.2f TH/s", (float)hashrate / tb);
+        sprintf(display, "%.2f TH/s", (float)hashrate / tb);
     else if (hashrate >= gb && hashrate < tb)
-        sprintf(rateDisplay, "%.2f GH/s", (float)hashrate / gb);
+        sprintf(display, "%.2f GH/s", (float)hashrate / gb);
     else if (hashrate >= mb && hashrate < gb)
-        sprintf(rateDisplay, "%.2f MH/s", (float)hashrate / mb);
+        sprintf(display, "%.2f MH/s", (float)hashrate / mb);
     else if (hashrate >= kb && hashrate < mb)
-        sprintf(rateDisplay, "%.2f KH/s", (float)hashrate / kb);
+        sprintf(display, "%.2f KH/s", (float)hashrate / kb);
     else if (hashrate < kb)
-        sprintf(rateDisplay, "%.2f H/s ", hashrate);
+        sprintf(display, "%.2f H/s ", hashrate);
     else
-        sprintf(rateDisplay, "%.2f H/s", hashrate);
+        sprintf(display, "%.2f H/s", hashrate);
 
-    int uptimeSeconds = difftime(now, start);
-    std::string uptime = convertSecondsToUptime(uptimeSeconds);
-    float uptimeMinutes = (float)uptimeSeconds / (float)60;
-    float coinsPerMinute = 0;
-    /* In pool mining we only have accepted shares.
-    if (dynProgram->acceptedBlocks > 0) {
-        coinsPerMinute = (float)dynProgram->acceptedBlocks / uptimeMinutes;
-    } else {
-        coinsPerMinute = 0;
-    }
-    */
+    std::string uptime = seconds_to_uptime(difftime(now, start));
 
     SET_COLOR(LIGHTBLUE);
     printf("%s: ", timestamp);
     SET_COLOR(GREEN);
-    printf("%s", rateDisplay);
+    printf("%s", display);
     // SET_COLOR(LIGHTGRAY);
     // printf(" | ");
     // SET_COLOR(LIGHTGREEN);
@@ -89,13 +79,13 @@ static bool outputStats(time_t now, time_t start, shares_t& shares) {
     SET_COLOR(LIGHTGRAY);
     printf(" | ");
     SET_COLOR(LIGHTGREEN);
-    printf("S: %4d", shares.share_count.load(std::memory_order_relaxed));
+    printf("S: %4d", stats.share_count.load(std::memory_order_relaxed));
     SET_COLOR(GREEN);
-    printf("/%-4d", shares.accepted_share_count.load(std::memory_order_relaxed));
+    printf("/%-4d", stats.accepted_share_count.load(std::memory_order_relaxed));
     SET_COLOR(LIGHTGRAY);
     printf(" | ");
     SET_COLOR(LIGHTGREEN);
-    printf(" D:%-4d", shares.latest_diff.load(std::memory_order_relaxed));
+    printf(" D:%-4d", stats.latest_diff.load(std::memory_order_relaxed));
     SET_COLOR(LIGHTGRAY);
     printf(" | ");
     SET_COLOR(LIGHTGREEN);
@@ -109,7 +99,7 @@ static bool outputStats(time_t now, time_t start, shares_t& shares) {
     return (true);
 }
 
-static std::string convertSecondsToUptime(int n) {
+static std::string seconds_to_uptime(int n) {
     int days = n / (24 * 3600);
 
     n = n % (24 * 3600);

@@ -19,7 +19,6 @@
 #include <linux/unistd.h> /* for _syscallX macros/related stuff */
 #include <sys/signal.h>
 #include <sys/sysinfo.h>
-//#include <sched.h>
 #endif
 
 #include <thread>
@@ -56,7 +55,7 @@ struct dyn_miner {
 
     inline void set_difficulty(double diff) {
         shared_work.set_difficulty(diff);
-        shares.latest_diff = static_cast<uint32_t>(diff);
+        shares.stats.latest_diff = static_cast<uint32_t>(diff);
     }
 };
 
@@ -92,7 +91,7 @@ void dyn_miner::start_gpu(uint32_t gpuIndex) {
 
 void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index) {
     work_t work = shared_work.clone();
-    uint32_t nonce = (shares.nonce_count.load(std::memory_order_relaxed) + rand_nonce()) * (index + 1);
+    uint32_t nonce = (shares.stats.nonce_count.load(std::memory_order_relaxed) + rand_nonce()) * (index + 1);
 
     unsigned char header[80];
     memcpy(header, work.native_data, 80);
@@ -101,7 +100,7 @@ void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index) {
     unsigned char result[32];
     while (shared_work == work) {
         execute_program(result, header, work.program, work.prev_block_hash, work.merkle_root);
-        shares.nonce_count++;
+        shares.stats.nonce_count++;
 
         uint64_t hash_int = *(uint64_t*)&result[24];
         if (hash_int <= work.share_target) {
@@ -116,14 +115,6 @@ void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index) {
 }
 
 void dyn_miner::start_cpu(uint32_t index) {
-    /*
-#ifdef __linux__
-    cpu_set_t set;
-    CPU_ZERO(&set);
-    CPU_SET(index, &set);
-    if (sched_setaffinity(getpid(), sizeof(set), &set) < 0) printf("sched_setaffinity failed\n");
-#endif
-    */
     wait_for_work();
     while (true) {
         cpu_miner(shared_work, shares, index);
@@ -268,7 +259,7 @@ int main(int argc, char* argv[]) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
             time_t now;
             time(&now);
-            outputStats(now, start, miner.shares);
+            output_stats(now, start, miner.shares.stats);
         }
     }).detach();
 
@@ -291,10 +282,12 @@ int main(int argc, char* argv[]) {
             printf("Cannot open socket.\n");
             exit(1);
         }
+
         bzero(&addr, sizeof(addr));
         addr.sin_family = AF_INET;
         addr.sin_port = htons(rpc.port);
         memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
+
         printf("Connecting to %s:%d\n", rpc.host, rpc.port);
         int err = connect(cbuf->fd, (struct sockaddr*)&addr, sizeof(addr));
         if (err != 0) {
@@ -305,23 +298,28 @@ int main(int argc, char* argv[]) {
 
         // send authorization message
         char buf[CBSIZE] = {0};
-        sprintf(
-          buf,
+
+#define CHECKED_WRITE(fd, FMT, ARGS...)                                                                                \
+    sprintf(buf, FMT, ARGS);                                                                                           \
+    DEBUG_LOG("> %s\n", buf);                                                                                          \
+    if (write(fd, buf, strlen(buf)) < strlen(buf))
+
+        CHECKED_WRITE(
+          cbuf->fd,
           "{\"params\": [\"%s\", \"%s\"], \"id\": \"auth\", \"method\": \"mining.authorize\"}",
           rpc.user,
-          rpc.password);
-        DEBUG_LOG("> %s\n", buf);
-        size_t w = write(cbuf->fd, buf, strlen(buf));
-        if (w < strlen(buf)) {
+          rpc.password) {
             printf("Failed to authenticate\n");
             continue;
         }
 
         // send suggest difficulty
         double suggest_diff = 1;
-        sprintf(buf, "{\"params\": [%.8f], \"id\": \"diff\", \"method\": \"mining.suggest_difficulty\"}", suggest_diff);
-        write(cbuf->fd, buf, strlen(buf));
-        DEBUG_LOG("> %s\n", buf);
+        CHECKED_WRITE(
+          cbuf->fd, "{\"params\": [%.8f], \"id\": \"diff\", \"method\": \"mining.suggest_difficulty\"}", suggest_diff) {
+            printf("Failed to write suggest difficulty\n");
+            continue;
+        }
 
         // spawn a thread writing shares
         std::thread([&miner, user = rpc.user, fd = cbuf->fd]() {
@@ -340,28 +338,23 @@ int main(int argc, char* argv[]) {
                         DEBUG_LOG("Stale share for job %d\n", share.job_num);
                         continue;
                     }
-                    const std::string hex_nonce = makeHex((unsigned char*)share.nonce, 4);
-                    // write message
-                    sprintf(
-                      buf,
+                    CHECKED_WRITE(
+                      fd,
                       "{\"params\": [\"%s\", \"%s\", \"\", \"%s\", \"%s\"], \"id\": \"%d\", "
                       "\"method\": \"mining.submit\"}",
                       user,
                       share.job_id.c_str(),
                       share.hex_ntime.c_str(),
-                      hex_nonce.c_str(),
-                      rpc_id);
-                    DEBUG_LOG("> %s\n", buf);
-                    size_t size = strlen(buf);
-                    size_t res = write(fd, buf, size);
-                    if (res == -1) {
-                        printf("Writing failed, closing loop.\n");
+                      makeHex((unsigned char*)share.nonce, 4).c_str(),
+                      rpc_id++) {
+                        printf("Writing failed. Connection closed.\n");
                         return;
                     }
-                    rpc_id++;
                 }
             }
         }).detach();
+
+#undef CHECKED_WRITE
 
         // read messages from socket line by line
         while (read_line(cbuf, buf, sizeof(buf)) > 0) {
@@ -396,7 +389,7 @@ int main(int argc, char* argv[]) {
                         const std::string& message = error[1];
                         printf("Error (%s): %s (code: %d)\n", resp.c_str(), message.c_str(), code);
                     } else {
-                        miner.shares.accepted_share_count++;
+                        miner.shares.stats.accepted_share_count++;
                     }
                 }
             }
