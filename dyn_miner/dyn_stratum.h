@@ -24,6 +24,7 @@ struct stats_t {
     std::atomic<uint32_t> nonce_count{};
     std::atomic<uint32_t> share_count{};
     std::atomic<uint32_t> accepted_share_count{};
+    std::atomic<uint32_t> rejected_share_count{};
     std::atomic<uint32_t> latest_diff{};
 };
 

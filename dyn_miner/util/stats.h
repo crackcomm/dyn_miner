@@ -84,6 +84,10 @@ static bool output_stats(time_t now, time_t start, stats_t& stats) {
     printf("/%-4d", stats.accepted_share_count.load(std::memory_order_relaxed));
     SET_COLOR(LIGHTGRAY);
     printf(" | ");
+    SET_COLOR(RED);
+    printf("R: %4d", stats.rejected_share_count.load(std::memory_order_relaxed));
+    SET_COLOR(LIGHTGRAY);
+    printf(" | ");
     SET_COLOR(LIGHTGREEN);
     printf(" D:%-4d", stats.latest_diff.load(std::memory_order_relaxed));
     SET_COLOR(LIGHTGRAY);

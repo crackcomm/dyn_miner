@@ -7,9 +7,9 @@
 #include "sha256.h"
 #include "util/common.h"
 #include "util/hex.h"
+#include "util/rand.h"
 #include "util/sockets.h"
 #include "util/stats.h"
-#include "util/rand.h"
 
 #ifdef GPU_MINER
 #include "dyn_miner_gpu.h"
@@ -373,7 +373,8 @@ int main(int argc, char* argv[]) {
                         const std::vector<json>& error = msg["error"];
                         const int code = error[0];
                         const std::string& message = error[1];
-                        printf("Error (%s): %s (code: %d)\n", resp.c_str(), message.c_str(), code);
+                        DEBUG_LOG("Error (%s): %s (code: %d)\n", resp.c_str(), message.c_str(), code);
+                        miner.shares.stats.rejected_share_count++;
                     } else {
                         miner.shares.stats.accepted_share_count++;
                     }
