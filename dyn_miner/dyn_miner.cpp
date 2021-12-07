@@ -94,7 +94,6 @@ void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index, ran
         if (hash_int <= work.share_target) {
             const share_t share = work.share((char*)header + 76);
             shares.append(share);
-            return;
         }
 
         nonce++;
