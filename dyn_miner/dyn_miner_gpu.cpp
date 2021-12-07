@@ -348,7 +348,6 @@ void CDynProgramGPU::start_miner(
         memcpy(&kernel.buffHeader[gpu][i * 80], work.native_data, 80);
     }
 
-    printf("byte code size: %lu\n", byte_code.size);
     returnVal = clEnqueueWriteBuffer(
       kernel.command_queue[gpu],
       kernel.clGPUProgramBuffer[gpu],
