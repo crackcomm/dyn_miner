@@ -155,9 +155,9 @@ void CDynGPUKernel::print() {
         printf("No OpenCL platforms detected.\n");
     }
 
-    for (int i = 0; i < ret_num_platforms; i++) {
+    for (uint32_t i = 0; i < ret_num_platforms; i++) {
         returnVal = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_GPU, 16, device_id, &numOpenCLDevices);
-        for (int j = 0; j < numOpenCLDevices; j++) {
+        for (uint32_t j = 0; j < numOpenCLDevices; j++) {
             returnVal = clGetDeviceInfo(
               device_id[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(globalMem), &globalMem, &sizeRet);
             returnVal = clGetDeviceInfo(
@@ -199,7 +199,7 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
     // Initialize context
     returnVal = clGetPlatformIDs(16, platform_id, &ret_num_platforms);
     returnVal = clGetDeviceIDs(platform_id[platformID], CL_DEVICE_TYPE_GPU, 16, openCLDevices, &numOpenCLDevices);
-    for (int i = 0; i < numOpenCLDevices; i++) {
+    for (uint32_t i = 0; i < numOpenCLDevices; i++) {
         context[i] = clCreateContext(NULL, 1, &openCLDevices[i], NULL, NULL, &returnVal);
 
         /*
@@ -349,7 +349,7 @@ void CDynProgramGPU::start_miner(
     uint32_t nonce = rand_seed.rand_with_index(gpu);
 
     // copy header to GPU buffers
-    for (int i = 0; i < numComputeUnits; i++) {
+    for (uint32_t i = 0; i < numComputeUnits; i++) {
         memcpy(&kernel.buffHeader[gpu][i * 80], work.native_data, 80);
     }
 
@@ -366,7 +366,7 @@ void CDynProgramGPU::start_miner(
 
     while (shared_work == work) {
         // copy nonce to headers on GPU buffers
-        for (int i = 0; i < numComputeUnits; i++) {
+        for (uint32_t i = 0; i < numComputeUnits; i++) {
             uint32_t nonce1 = nonce + i;
             memcpy(&kernel.buffHeader[gpu][i * 80 + 76], &nonce1, 4);
         }
@@ -399,7 +399,7 @@ void CDynProgramGPU::start_miner(
           NULL);
 
         // find a hash with difficulty higher than share diff
-        for (int k = 0; k < numComputeUnits; k++) {
+        for (uint32_t k = 0; k < numComputeUnits; k++) {
             // read last 8 bytes of hash as [uint64_t] target
             uint64_t hash_int{};
             unsigned char* hash = (unsigned char*)&kernel.buffHashResult[gpu][k * 8];

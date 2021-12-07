@@ -112,7 +112,7 @@ struct work_t {
 
     void set_difficulty(double diff) {
         diff = std::max(diff, 1.0);
-        share_target = share_to_target(diff) * diff_multiplier;
+        share_target = static_cast<uint64_t>(share_to_target(diff) * diff_multiplier);
     }
 };
 
