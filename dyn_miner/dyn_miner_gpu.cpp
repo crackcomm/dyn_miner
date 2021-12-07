@@ -168,6 +168,19 @@ void CDynGPUKernel::print() {
 }
 
 void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vector<std::string>& program) {
+    std::array<std::string, 2> paths{"dyn_miner.cl", "dyn_miner/dyn_miner.cl"};
+    std::string kernel_source{};
+    for (auto& path : paths) {
+        if (access(path.c_str(), F_OK) == 0) {
+            kernel_source = path;
+            break;
+        }
+    }
+    if (kernel_source.empty()) {
+        fprintf(stderr, "Kernel source code not found.\n");
+        return;
+    }
+
     uint32_t largestMemgen = 0;
     uint32_t byteCodeLen = 0;
     std::vector<uint32_t> byteCode = executeAssembleByteCode(
@@ -207,7 +220,7 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
         // Read the kernel source
         FILE* kernelSourceFile;
 
-        kernelSourceFile = fopen("dyn_miner.cl", "r");
+        kernelSourceFile = fopen(kernel_source.c_str(), "r");
         if (!kernelSourceFile) {
             fprintf(stderr, "Failed to load kernel.\n");
             return;
@@ -367,15 +380,7 @@ void CDynProgramGPU::startMiner(
         size_t globalWorkSize = numComputeUnits;
         size_t localWorkSize = 1;
         returnVal = clEnqueueNDRangeKernel(
-          kernel.command_queue[gpu],
-          kernel.kernel[gpu],
-          1,
-          NULL,
-          &globalWorkSize,
-          &localWorkSize,
-          0,
-          NULL,
-          NULL);
+          kernel.command_queue[gpu], kernel.kernel[gpu], 1, NULL, &globalWorkSize, &localWorkSize, 0, NULL, NULL);
         returnVal = clFinish(kernel.command_queue[gpu]);
 
         returnVal = clEnqueueReadBuffer(
