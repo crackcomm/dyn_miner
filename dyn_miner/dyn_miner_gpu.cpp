@@ -329,7 +329,6 @@ void CDynProgramGPU::startMiner(
     cl_int returnVal;
 
     uint32_t nonce = (shares.stats.nonce_count + rand_nonce()) * (gpuIndex + 1);
-    unsigned char hashA[32];
 
     // copy header to GPU buffers
     for (int i = 0; i < numComputeUnits; i++) {
