@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dynprogram.h"
 #include "util/difficulty.h"
 #include "util/hex.h" // TODO: remove, only for debug
 
@@ -88,6 +89,7 @@ struct work_t {
     unsigned char native_data[80] = {0};
     std::vector<std::string> program{};
     std::string str_program{};
+    program_t cpu_program{};
 
     bool set_program(const std::string& new_program_str) {
         if (new_program_str == str_program) {
@@ -95,6 +97,7 @@ struct work_t {
         }
         program = load_program(new_program_str, '$');
         str_program = new_program_str;
+        cpu_program = program_to_bytecode(program);
         return true;
     }
 

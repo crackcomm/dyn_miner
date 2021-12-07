@@ -87,7 +87,7 @@ void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index, ran
 
     unsigned char result[32];
     while (shared_work == work) {
-        execute_program(result, header, work.program, work.prev_block_hash, work.merkle_root);
+        execute_program(result, header, work.cpu_program, work.prev_block_hash, work.merkle_root);
         shares.stats.nonce_count++;
 
         uint64_t hash_int = *(uint64_t*)&result[24];
