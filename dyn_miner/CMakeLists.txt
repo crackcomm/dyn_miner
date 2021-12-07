@@ -25,5 +25,10 @@ endif()
 
 if(GPU_MINER)
   target_link_libraries(dyn_miner PUBLIC OpenCL)
+  add_custom_command(
+    TARGET dyn_miner POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/dyn_miner.cl
+            ${CMAKE_CURRENT_BINARY_DIR}/dyn_miner.cl)
 endif()
 
