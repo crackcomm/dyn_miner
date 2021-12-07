@@ -50,14 +50,9 @@ struct CDynProgramGPU {
         std::size_t size;
     };
 
-    struct byte_code_cache_t {
-        char prev_block_hash[32] = {0};
-        char merkle_root[32] = {0};
-        byte_code_t byte_code;
-    };
-
-    std::string program;
-    byte_code_cache_t byte_code_cache{};
+    char prev_block_hash[32] = {0};
+    char merkle_root[32] = {0};
+    byte_code_t byte_code;
 
     // loads byte code to cache
     void load_byte_code(const work_t&);

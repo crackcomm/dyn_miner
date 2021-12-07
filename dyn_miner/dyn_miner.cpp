@@ -227,7 +227,12 @@ int main(int argc, char* argv[]) {
         }
     } else if (device == miner_device::GPU) {
 #ifdef GPU_MINER
-        for (uint32_t i = 0; i < miner.gpu_program.kernel.numOpenCLDevices; i++) {
+        uint32_t devices = miner.gpu_program.kernel.numOpenCLDevices;
+        if (devices == 0) {
+            printf("No GPU devices detected.\n");
+            return -1;
+        }
+        for (uint32_t i = 0; i < devices; i++) {
             std::thread([i, &miner]() { miner.start_gpu(i); }).detach();
         }
 #else

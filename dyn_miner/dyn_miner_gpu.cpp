@@ -111,18 +111,16 @@ inline CDynProgramGPU::byte_code_t vector_to_contiguous(std::vector<uint32_t> co
 }
 
 void CDynProgramGPU::load_byte_code(const work_t& work) {
-    if (
-      strcmp(work.prev_block_hash, byte_code_cache.prev_block_hash) == 0
-      && strcmp(work.merkle_root, byte_code_cache.merkle_root) == 0) {
+    if (strcmp(work.prev_block_hash, prev_block_hash) == 0 && strcmp(work.merkle_root, merkle_root) == 0) {
         return;
     }
     // TODO: buffer resizing
     uint32_t largestMemgen{};
     std::vector<uint32_t> byteCode = executeAssembleByteCode(
       &largestMemgen, work.program, work.prev_block_hash, work.merkle_root); // only calling to get largestMemgen
-    byte_code_cache.byte_code = vector_to_contiguous(byteCode);
-    memcpy(byte_code_cache.prev_block_hash, work.prev_block_hash, 32);
-    memcpy(byte_code_cache.merkle_root, work.merkle_root, 32);
+    byte_code = vector_to_contiguous(byteCode);
+    memcpy(prev_block_hash, work.prev_block_hash, 32);
+    memcpy(merkle_root, work.merkle_root, 32);
 }
 
 CDynGPUKernel::CDynGPUKernel() {
@@ -255,13 +253,13 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
 
         // Allocate program source buffer and load
         clGPUProgramBuffer[i] = clCreateBuffer(context[i], CL_MEM_READ_WRITE, byteCodeLen, NULL, &returnVal);
-        returnVal = clSetKernelArg(kernel[i], 0, sizeof(clGPUProgramBuffer[i]), (void*)&clGPUProgramBuffer[i]);
+        returnVal = clSetKernelArg(kernel[i], 0, sizeof(cl_mem), (void*)&clGPUProgramBuffer[i]);
         returnVal = clEnqueueWriteBuffer(
           command_queue[i], clGPUProgramBuffer[i], CL_TRUE, 0, byteCodePtr.size, byteCodePtr.ptr.get(), 0, NULL, NULL);
 
         // Allocate global memory buffer and zero
         cl_mem clGPUMemGenBuffer = clCreateBuffer(context[i], CL_MEM_READ_WRITE, globalMempoolSize, NULL, &returnVal);
-        returnVal = clSetKernelArg(kernel[i], 1, sizeof(clGPUMemGenBuffer), (void*)&clGPUMemGenBuffer);
+        returnVal = clSetKernelArg(kernel[i], 1, sizeof(cl_mem), (void*)&clGPUMemGenBuffer);
         /*
         unsigned char* buffMemGen = (unsigned char*)malloc(globalMempoolSize);
         memset(buffMemGen, 0, globalMempoolSize);
@@ -275,7 +273,7 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
         // Allocate hash result buffer and zero
         hashResultSize = computeUnits * 32;
         clGPUHashResultBuffer[i] = clCreateBuffer(context[i], CL_MEM_READ_WRITE, hashResultSize, NULL, &returnVal);
-        returnVal = clSetKernelArg(kernel[i], 3, sizeof(clGPUHashResultBuffer[i]), (void*)&clGPUHashResultBuffer[i]);
+        returnVal = clSetKernelArg(kernel[i], 3, sizeof(cl_mem), (void*)&clGPUHashResultBuffer[i]);
         buffHashResult[i] = (uint32_t*)malloc(hashResultSize);
         memset(buffHashResult[i], 0, hashResultSize);
         returnVal = clEnqueueWriteBuffer(
@@ -295,7 +293,7 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
         // Allocate header buffer and load
         headerBuffSize = computeUnits * 80;
         clGPUHeaderBuffer[i] = clCreateBuffer(context[i], CL_MEM_READ_WRITE, headerBuffSize, NULL, &returnVal);
-        returnVal = clSetKernelArg(kernel[i], 4, sizeof(clGPUHeaderBuffer[i]), (void*)&clGPUHeaderBuffer[i]);
+        returnVal = clSetKernelArg(kernel[i], 4, sizeof(cl_mem), (void*)&clGPUHeaderBuffer[i]);
         buffHeader[i] = (unsigned char*)malloc(headerBuffSize);
         memset(buffHeader[i], 0, headerBuffSize);
         returnVal = clEnqueueWriteBuffer(
@@ -304,7 +302,7 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
         // Allocate SHA256 scratch buffer - this probably isnt needed if properly optimized
         uint32_t scratchBuffSize = computeUnits * 32;
         cl_mem clGPUScratchBuffer = clCreateBuffer(context[i], CL_MEM_READ_WRITE, scratchBuffSize, NULL, &returnVal);
-        returnVal = clSetKernelArg(kernel[i], 5, sizeof(clGPUScratchBuffer), (void*)&clGPUScratchBuffer);
+        returnVal = clSetKernelArg(kernel[i], 5, sizeof(cl_mem), (void*)&clGPUScratchBuffer);
         /*
         unsigned char* buffScratch = (unsigned char*)malloc(scratchBuffSize);
         memset(buffScratch, 0, scratchBuffSize);
@@ -333,19 +331,24 @@ void CDynProgramGPU::startMiner(
     uint32_t nonce = (shares.stats.nonce_count + rand_nonce()) * (gpuIndex + 1);
     unsigned char hashA[32];
 
-    for (int i = 0; i < numComputeUnits; i++)
+    // copy header to GPU buffers
+    for (int i = 0; i < numComputeUnits; i++) {
         memcpy(&kernel.buffHeader[gpuIndex][i * 80], work.native_data, 80);
+    }
+
     returnVal = clEnqueueWriteBuffer(
       kernel.command_queue[gpuIndex],
       kernel.clGPUProgramBuffer[gpuIndex],
       CL_TRUE,
       0,
-      byte_code_cache.byte_code.size,
-      byte_code_cache.byte_code.ptr.get(),
+      byte_code.size,
+      byte_code.ptr.get(),
       0,
       NULL,
       NULL);
+
     while (shared_work == work) {
+        // copy nonce to headers on GPU buffers
         for (int i = 0; i < numComputeUnits; i++) {
             uint32_t nonce1 = nonce + i;
             memcpy(&kernel.buffHeader[gpuIndex][i * 80 + 76], &nonce1, 4);
@@ -386,13 +389,19 @@ void CDynProgramGPU::startMiner(
           NULL,
           NULL);
 
+        // find a hash with difficulty higher than share diff
         for (int k = 0; k < numComputeUnits; k++) {
+            // read last 8 bytes of hash as [uint64_t] target
             uint64_t hash_int = kernel.buffHashResult[gpuIndex][k * 8 + 3];
-            if (hash_int < work.share_target) {
+            // hash target should be lower than share target
+            if (hash_int <= work.share_target) {
+                // append share to queue
                 shares.append(work.share(nonce + k));
             }
         }
+        // increment local nonce
         nonce += numComputeUnits;
+        // increment global atomic nonce counter
         shares.stats.nonce_count += numComputeUnits;
     }
 }
