@@ -171,7 +171,12 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
     std::array<std::string, 2> paths{"dyn_miner.cl", "dyn_miner/dyn_miner.cl"};
     std::string kernel_source{};
     for (auto& path : paths) {
-        if (access(path.c_str(), F_OK) == 0) {
+#ifdef _WIN32
+        if (GetFileAttributes(path.c_str()) != INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_SUCCESS)
+#else
+        if (access(path.c_str(), F_OK) == 0)
+#endif
+        {
             kernel_source = path;
             break;
         }

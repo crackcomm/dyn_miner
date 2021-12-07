@@ -4,7 +4,7 @@
 #include <cstring>
 #include <vector>
 
-inline constexpr unsigned char decodeHex(char in) {
+inline unsigned char decodeHex(char in) {
     in = toupper(in);
     if ((in >= '0') && (in <= '9'))
         return in - '0';
@@ -20,8 +20,6 @@ inline void parseHex(std::string input, unsigned char* output) {
         output[i / 2] = value;
     }
 }
-
-//inline void hex2bin(const 
 
 const std::vector<char> hexDigit = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 

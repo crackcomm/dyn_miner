@@ -6,6 +6,10 @@
 
 #include <string>
 
+#ifdef _WIN32
+#include "Windows.h"
+#endif
+
 constexpr auto BLACK = 0;
 constexpr auto BLUE = 1;
 constexpr auto GREEN = 2;
