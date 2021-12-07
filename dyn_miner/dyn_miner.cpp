@@ -69,10 +69,10 @@ void dyn_miner::wait_for_work() {
 }
 
 #ifdef GPU_MINER
-void dyn_miner::start_gpu(uint32_t gpuIndex) {
+void dyn_miner::start_gpu(uint32_t gpu) {
     wait_for_work();
     while (true) {
-        gpu_program.startMiner(shared_work, compute_units, gpuIndex, shares, rand_seed);
+        gpu_program.start_miner(shared_work, compute_units, gpu, shares, rand_seed);
     }
 }
 #endif
@@ -234,6 +234,7 @@ int main(int argc, char* argv[]) {
             printf("No GPU devices detected.\n");
             return -1;
         }
+        printf("Starting work on %d devices with %d compute units.\n", devices, miner.compute_units);
         for (uint32_t i = 0; i < devices; i++) {
             std::thread([i, &miner]() { miner.start_gpu(i); }).detach();
         }

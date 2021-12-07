@@ -104,10 +104,10 @@ static std::vector<uint32_t> executeAssembleByteCode(
 }
 
 inline CDynProgramGPU::byte_code_t vector_to_contiguous(std::vector<uint32_t> code) {
-    CDynProgramGPU::byte_code_ptr result((uint32_t*)malloc(sizeof(uint32_t) * code.size()));
+    uint32_t* result = (uint32_t*)malloc(sizeof(uint32_t) * code.size());
     for (int i = 0; i < code.size(); i++)
-        result.get()[i] = code.at(i);
-    return {.ptr = std::move(result), .size = code.size() * 4};
+        result[i] = code.at(i);
+    return {.ptr = CDynProgramGPU::byte_code_ptr(result), .size = sizeof(uint32_t) * code.size()};
 }
 
 void CDynProgramGPU::load_byte_code(const work_t& work) {
@@ -182,7 +182,6 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
     }
 
     uint32_t largestMemgen = 0;
-    uint32_t byteCodeLen = 0;
     std::vector<uint32_t> byteCode = executeAssembleByteCode(
       &largestMemgen, program, "0000", "0000"); // only calling to get largestMemgen
     CDynProgramGPU::byte_code_t byteCodePtr = vector_to_contiguous(byteCode);
@@ -265,7 +264,7 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
         // TODO - make sure this is less than globalMem
 
         // Allocate program source buffer and load
-        clGPUProgramBuffer[i] = clCreateBuffer(context[i], CL_MEM_READ_WRITE, byteCodeLen, NULL, &returnVal);
+        clGPUProgramBuffer[i] = clCreateBuffer(context[i], CL_MEM_READ_WRITE, byteCodePtr.size, NULL, &returnVal);
         returnVal = clSetKernelArg(kernel[i], 0, sizeof(cl_mem), (void*)&clGPUProgramBuffer[i]);
         returnVal = clEnqueueWriteBuffer(
           command_queue[i], clGPUProgramBuffer[i], CL_TRUE, 0, byteCodePtr.size, byteCodePtr.ptr.get(), 0, NULL, NULL);
@@ -326,7 +325,7 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
 }
 
 // returns 1 if timeout or 0 if successful
-void CDynProgramGPU::startMiner(
+void CDynProgramGPU::start_miner(
   shared_work_t& shared_work,
   uint32_t numComputeUnits,
   uint32_t gpu,
@@ -349,6 +348,7 @@ void CDynProgramGPU::startMiner(
         memcpy(&kernel.buffHeader[gpu][i * 80], work.native_data, 80);
     }
 
+    printf("byte code size: %lu\n", byte_code.size);
     returnVal = clEnqueueWriteBuffer(
       kernel.command_queue[gpu],
       kernel.clGPUProgramBuffer[gpu],
@@ -397,7 +397,9 @@ void CDynProgramGPU::startMiner(
         // find a hash with difficulty higher than share diff
         for (int k = 0; k < numComputeUnits; k++) {
             // read last 8 bytes of hash as [uint64_t] target
-            uint64_t hash_int = kernel.buffHashResult[gpu][k * 8 + 3];
+            uint64_t hash_int{};
+            unsigned char* hash = (unsigned char*)&kernel.buffHashResult[gpu][k * 8];
+            memcpy(&hash_int, &hash[24], 8);
             // hash target should be lower than share target
             if (hash_int <= work.share_target) {
                 // append share to queue
