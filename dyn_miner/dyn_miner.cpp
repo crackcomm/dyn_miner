@@ -47,6 +47,8 @@ struct dyn_miner {
     int compute_units{};
     int gpu_platform_id{};
 
+    rand_seed_t rand_seed{};
+
     dyn_miner() = default;
 
     void start_cpu(uint32_t);
@@ -70,14 +72,14 @@ void dyn_miner::wait_for_work() {
 void dyn_miner::start_gpu(uint32_t gpuIndex) {
     wait_for_work();
     while (true) {
-        gpu_program.startMiner(shared_work, compute_units, gpuIndex, shares);
+        gpu_program.startMiner(shared_work, compute_units, gpuIndex, shares, rand_seed);
     }
 }
 #endif
 
-void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index) {
+void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index, rand_seed_t rand_seed) {
     work_t work = shared_work.clone();
-    uint32_t nonce = (shares.stats.nonce_count + rand_nonce()) * (index + 1);
+    uint32_t nonce = rand_seed.rand_with_index(index);
 
     unsigned char header[80];
     memcpy(header, work.native_data, 80);
@@ -103,7 +105,7 @@ void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index) {
 void dyn_miner::start_cpu(uint32_t index) {
     wait_for_work();
     while (true) {
-        cpu_miner(shared_work, shares, index);
+        cpu_miner(shared_work, shares, index, rand_seed);
     }
 }
 

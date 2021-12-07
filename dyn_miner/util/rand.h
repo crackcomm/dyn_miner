@@ -20,3 +20,10 @@ inline uint32_t rand_nonce() {
 #endif
     return nonce;
 }
+
+struct rand_seed_t {
+    uint32_t rand_seed = rand_nonce();
+
+    inline uint32_t rand() { return rand_nonce() + rand_seed; }
+    inline uint32_t rand_with_index(uint32_t index) { return rand() * (index + 1); }
+};

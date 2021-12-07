@@ -316,8 +316,9 @@ void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vect
 void CDynProgramGPU::startMiner(
   shared_work_t& shared_work,
   uint32_t numComputeUnits,
-  uint32_t gpuIndex,
-  shares_t& shares) { // WHISKERZ
+  uint32_t gpu,
+  shares_t& shares,
+  rand_seed_t rand_seed) { // WHISKERZ
 
     // assmeble bytecode for program
     // allocate global memory buffer based on largest size of memgen
@@ -328,16 +329,16 @@ void CDynProgramGPU::startMiner(
     load_byte_code(work);
     cl_int returnVal;
 
-    uint32_t nonce = (shares.stats.nonce_count + rand_nonce()) * (gpuIndex + 1);
+    uint32_t nonce = rand_seed.rand_with_index(gpu);
 
     // copy header to GPU buffers
     for (int i = 0; i < numComputeUnits; i++) {
-        memcpy(&kernel.buffHeader[gpuIndex][i * 80], work.native_data, 80);
+        memcpy(&kernel.buffHeader[gpu][i * 80], work.native_data, 80);
     }
 
     returnVal = clEnqueueWriteBuffer(
-      kernel.command_queue[gpuIndex],
-      kernel.clGPUProgramBuffer[gpuIndex],
+      kernel.command_queue[gpu],
+      kernel.clGPUProgramBuffer[gpu],
       CL_TRUE,
       0,
       byte_code.size,
@@ -350,15 +351,15 @@ void CDynProgramGPU::startMiner(
         // copy nonce to headers on GPU buffers
         for (int i = 0; i < numComputeUnits; i++) {
             uint32_t nonce1 = nonce + i;
-            memcpy(&kernel.buffHeader[gpuIndex][i * 80 + 76], &nonce1, 4);
+            memcpy(&kernel.buffHeader[gpu][i * 80 + 76], &nonce1, 4);
         }
         returnVal = clEnqueueWriteBuffer(
-          kernel.command_queue[gpuIndex],
-          kernel.clGPUHeaderBuffer[gpuIndex],
+          kernel.command_queue[gpu],
+          kernel.clGPUHeaderBuffer[gpu],
           CL_TRUE,
           0,
           kernel.headerBuffSize,
-          kernel.buffHeader[gpuIndex],
+          kernel.buffHeader[gpu],
           0,
           NULL,
           NULL);
@@ -366,8 +367,8 @@ void CDynProgramGPU::startMiner(
         size_t globalWorkSize = numComputeUnits;
         size_t localWorkSize = 1;
         returnVal = clEnqueueNDRangeKernel(
-          kernel.command_queue[gpuIndex],
-          kernel.kernel[gpuIndex],
+          kernel.command_queue[gpu],
+          kernel.kernel[gpu],
           1,
           NULL,
           &globalWorkSize,
@@ -375,15 +376,15 @@ void CDynProgramGPU::startMiner(
           0,
           NULL,
           NULL);
-        returnVal = clFinish(kernel.command_queue[gpuIndex]);
+        returnVal = clFinish(kernel.command_queue[gpu]);
 
         returnVal = clEnqueueReadBuffer(
-          kernel.command_queue[gpuIndex],
-          kernel.clGPUHashResultBuffer[gpuIndex],
+          kernel.command_queue[gpu],
+          kernel.clGPUHashResultBuffer[gpu],
           CL_TRUE,
           0,
           kernel.hashResultSize,
-          kernel.buffHashResult[gpuIndex],
+          kernel.buffHashResult[gpu],
           0,
           NULL,
           NULL);
@@ -391,7 +392,7 @@ void CDynProgramGPU::startMiner(
         // find a hash with difficulty higher than share diff
         for (int k = 0; k < numComputeUnits; k++) {
             // read last 8 bytes of hash as [uint64_t] target
-            uint64_t hash_int = kernel.buffHashResult[gpuIndex][k * 8 + 3];
+            uint64_t hash_int = kernel.buffHashResult[gpu][k * 8 + 3];
             // hash target should be lower than share target
             if (hash_int <= work.share_target) {
                 // append share to queue

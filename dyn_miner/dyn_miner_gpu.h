@@ -1,5 +1,6 @@
 #pragma once
 #include "dyn_stratum.h"
+#include "util/rand.h"
 
 #include <CL/cl.h>
 #include <CL/cl_platform.h>
@@ -38,7 +39,8 @@ struct CDynGPUKernel {
 struct CDynProgramGPU {
     CDynGPUKernel kernel;
 
-    void startMiner(shared_work_t& shared_work, uint32_t numComputeUnits, uint32_t gpuIndex, shares_t& shares);
+    void startMiner(
+      shared_work_t& shared_work, uint32_t numComputeUnits, uint32_t gpuIndex, shares_t& shares, rand_seed_t rand_seed);
     struct free_delete {
         void operator()(uint32_t* bc) { free(bc); }
     };
