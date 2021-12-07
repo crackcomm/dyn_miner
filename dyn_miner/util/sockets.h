@@ -1,6 +1,5 @@
 #include "nlohmann/json.hpp"
 
-#include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
