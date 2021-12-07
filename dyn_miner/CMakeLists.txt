@@ -33,4 +33,5 @@ if(GPU_MINER)
 endif()
 
 set_property(TARGET dyn_miner PROPERTY CXX_STANDARD 20)
+set_property(TARGET dyn_miner PROPERTY CXX_STANDARD_REQUIRED ON)
 
