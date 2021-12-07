@@ -6,6 +6,10 @@
 #include <cstdlib>
 #include <ctime>
 
+#ifdef _WIN32
+#include "Windows.h"
+#endif
+
 inline uint32_t rand_nonce() {
     time_t t;
     time(&t);
