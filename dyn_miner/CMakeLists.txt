@@ -32,3 +32,5 @@ if(GPU_MINER)
             ${CMAKE_CURRENT_BINARY_DIR}/dyn_miner.cl)
 endif()
 
+set_property(TARGET dyn_miner PROPERTY CXX_STANDARD 20)
+
