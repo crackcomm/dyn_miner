@@ -1,10 +1,10 @@
 #include "nlohmann/json.hpp"
 
+#ifdef _WIN32
+#include "Windows.h"
+#else
 #include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#endif
 
 using json = nlohmann::json;
 
