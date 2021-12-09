@@ -14,11 +14,12 @@
 
 using json = nlohmann::json;
 
-typedef struct cbuf {
-    char buf[CBSIZE];
+struct cbuf_t {
+    char buf[CBSIZE] = {0};
     int fd;
-    unsigned int rpos, wpos;
-} cbuf_t;
+    unsigned int rpos = 0;
+    unsigned int wpos = 0;
+};
 
 inline int read_line(cbuf_t* cbuf, char* dst, unsigned int size) {
     unsigned int i = 0;

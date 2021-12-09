@@ -27,7 +27,8 @@
 #ifdef DEBUG_LOGS
 #define DEBUG_LOG(F, ARGS...) printf(F, ARGS)
 #else
-#define DEBUG_LOG(F, ARGS...) {}
+#define DEBUG_LOG(F, ARGS...)                                                                                          \
+    {}
 #endif
 
 using json = nlohmann::json;
@@ -259,7 +260,7 @@ int main(int argc, char* argv[]) {
 #ifdef __linux__
     signal(SIGPIPE, SIG_IGN);
 #endif
-    cbuf_t* cbuf = (cbuf_t*)calloc(1, sizeof(cbuf_t));
+    cbuf_t cbuf{};
 
 #ifdef _WIN32
     WSDATA wsa;
@@ -279,8 +280,8 @@ int main(int argc, char* argv[]) {
         }
 
         struct sockaddr_in addr {};
-        cbuf->fd = socket(AF_INET, SOCK_STREAM, 0);
-        if (cbuf->fd < 0) {
+        cbuf.fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (cbuf.fd < 0) {
             printf("Cannot open socket.\n");
             exit(1);
         }
@@ -290,7 +291,7 @@ int main(int argc, char* argv[]) {
         memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
 
         printf("Connecting to %s:%d\n", rpc.host, rpc.port);
-        int err = connect(cbuf->fd, (struct sockaddr*)&addr, sizeof(addr));
+        int err = connect(cbuf.fd, (struct sockaddr*)&addr, sizeof(addr));
         if (err != 0) {
             printf("Error connecting to %s:%d\n", rpc.host, rpc.port);
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -306,7 +307,7 @@ int main(int argc, char* argv[]) {
     if (write(fd, buf, strlen(buf)) < strlen(buf))
 
         CHECKED_WRITE(
-          cbuf->fd,
+          cbuf.fd,
           "{\"params\": [\"%s\", \"%s\"], \"id\": \"auth\", \"method\": \"mining.authorize\"}",
           rpc.user,
           rpc.password) {
@@ -317,13 +318,13 @@ int main(int argc, char* argv[]) {
         // send suggest difficulty
         double suggest_diff = 1;
         CHECKED_WRITE(
-          cbuf->fd, "{\"params\": [%.8f], \"id\": \"diff\", \"method\": \"mining.suggest_difficulty\"}", suggest_diff) {
+          cbuf.fd, "{\"params\": [%.8f], \"id\": \"diff\", \"method\": \"mining.suggest_difficulty\"}", suggest_diff) {
             printf("Failed to write suggest difficulty\n");
             continue;
         }
 
         // spawn a thread writing shares
-        std::thread([&miner, user = rpc.user, fd = cbuf->fd]() {
+        std::thread([&miner, user = rpc.user, fd = cbuf.fd]() {
             char buf[CBSIZE] = {0};
             uint32_t rpc_id = 0;
             while (true) {
@@ -358,7 +359,7 @@ int main(int argc, char* argv[]) {
 #undef CHECKED_WRITE
 
         // read messages from socket line by line
-        while (read_line(cbuf, buf, sizeof(buf)) > 0) {
+        while (read_line(&cbuf, buf, sizeof(buf)) > 0) {
             DEBUG_LOG("< %s\n", buf);
             json msg = json::parse(buf);
             const json& id = msg["id"];
@@ -398,12 +399,12 @@ int main(int argc, char* argv[]) {
         }
 
 #ifdef _WIN32
-        shutdown(cbuf->fd, SD_BOTH);
-        closesocket(cbuf->fd);
+        shutdown(cbuf.fd, SD_BOTH);
+        closesocket(cbuf.fd);
 #else
         // close socket
-        shutdown(cbuf->fd, SHUT_RDWR);
-        close(cbuf->fd);
+        shutdown(cbuf.fd, SHUT_RDWR);
+        close(cbuf.fd);
 #endif
     }
 
