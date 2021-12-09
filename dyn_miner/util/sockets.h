@@ -6,9 +6,13 @@
 #include <netdb.h>
 #endif
 
-using json = nlohmann::json;
+#ifdef _WIN32
+#define write(sock, buf, len) send(sock, buf, len, 0)
+#endif
 
 #define CBSIZE 2048
+
+using json = nlohmann::json;
 
 typedef struct cbuf {
     char buf[CBSIZE];

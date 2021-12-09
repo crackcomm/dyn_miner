@@ -27,7 +27,7 @@
 #ifdef DEBUG_LOGS
 #define DEBUG_LOG(F, ARGS...) printf(F, ARGS)
 #else
-#define DEBUG_LOG(F, ARGS...)
+#define DEBUG_LOG(F, ARGS...) {}
 #endif
 
 using json = nlohmann::json;
@@ -261,6 +261,15 @@ int main(int argc, char* argv[]) {
 #endif
     cbuf_t* cbuf = (cbuf_t*)calloc(1, sizeof(cbuf_t));
 
+#ifdef _WIN32
+    WSDATA wsa;
+    int res = WSAStartup(MAKEWORD(2, 2), &wsa);
+    if (res != NO_ERROR) {
+        printf("WSAStartup failed with error: %d\n", res);
+        return -1;
+    }
+#endif
+
     while (true) {
         struct hostent* he = gethostbyname(rpc.host);
         if (he == NULL) {
@@ -269,14 +278,13 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        struct sockaddr_in addr;
+        struct sockaddr_in addr {};
         cbuf->fd = socket(AF_INET, SOCK_STREAM, 0);
         if (cbuf->fd < 0) {
             printf("Cannot open socket.\n");
             exit(1);
         }
 
-        bzero(&addr, sizeof(addr));
         addr.sin_family = AF_INET;
         addr.sin_port = htons(rpc.port);
         memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
@@ -389,8 +397,17 @@ int main(int argc, char* argv[]) {
             }
         }
 
+#ifdef _WIN32
+        shutdown(cbuf->fd, SD_BOTH);
+        closesocket(cbuf->fd);
+#else
         // close socket
         shutdown(cbuf->fd, SHUT_RDWR);
         close(cbuf->fd);
+#endif
     }
+
+#ifdef _WIN32
+    WSACleanup();
+#endif
 }
