@@ -47,7 +47,6 @@ hashop parse_hashop(const std::vector<std::string>& tokens) {
     return hashop::UNKNOWN;
 }
 
-
 void program_t::append_op(hashop op) { bytecode.push_back(static_cast<uint32_t>(op)); }
 
 void program_t::append_hex_hash(const std::string& hex) {
@@ -111,7 +110,7 @@ void execute_program(
     ctx.Finalize((unsigned char*)temp_result);
 
     uint32_t mem_size = 0;    // size of current memory pool
-    uint32_t* memPool = NULL; // memory pool
+    uint32_t* mempool = NULL; // memory pool
 
     auto reader = program.reader();
     while (!reader.empty()) {
@@ -126,54 +125,51 @@ void execute_program(
                 temp_result[i] ^= reader.pop();
             break;
         case hashop::SHA_SINGLE:
-            unsigned char temp[32];
             ctx.Reset();
             ctx.Write((unsigned char*)temp_result, 32);
-            ctx.Finalize(temp);
-            memcpy(temp_result, temp, 32);
+            ctx.Finalize((unsigned char*)temp_result);
             break;
         case hashop::SHA_LOOP: {
             const uint32_t iters = reader.pop();
             for (uint32_t i = 0; i < iters; i++) {
-                unsigned char temp[32];
                 ctx.Reset();
                 ctx.Write((unsigned char*)temp_result, 32);
-                ctx.Finalize(temp);
-                memcpy(temp_result, temp, 32);
+                ctx.Finalize((unsigned char*)temp_result);
             }
             break;
         }
         case hashop::MEMGEN: {
             const hashop hash_op = reader.read_op();
             mem_size = reader.pop();
-            if (memPool != NULL) free(memPool);
-            memPool = (uint32_t*)malloc(mem_size * 32);
+            if (mempool == NULL) {
+                mempool = (uint32_t*)malloc(mem_size * 32);
+            } else {
+                mempool = (uint32_t*)realloc(mempool, mem_size * 32);
+            }
             if (hash_op == hashop::SHA_SINGLE) {
                 for (uint32_t i = 0; i < mem_size; i++) {
-                    unsigned char temp[32];
                     ctx.Reset();
                     ctx.Write((unsigned char*)temp_result, 32);
-                    ctx.Finalize(temp);
-                    memcpy(temp_result, temp, 32);
-                    memcpy(memPool + i * 8, temp_result, 32);
+                    ctx.Finalize((unsigned char*)temp_result);
+                    memcpy(mempool + i * 8, temp_result, 32);
                 }
             }
             break;
         }
         case hashop::MEMADD:
-            if (memPool != NULL) {
+            if (mempool != NULL) {
                 for (uint32_t i = 0; i < mem_size; i++) {
                     for (int j = 0; j < 8; j++)
-                        memPool[i * 8 + j] += reader.get(j);
+                        mempool[i * 8 + j] += reader.get(j);
                 }
             }
             reader.adv(8);
             break;
         case hashop::MEMXOR:
-            if (memPool != NULL) {
+            if (mempool != NULL) {
                 for (uint32_t i = 0; i < mem_size; i++) {
                     for (int j = 0; j < 8; j++)
-                        memPool[i * 8 + j] ^= reader.get(j);
+                        mempool[i * 8 + j] ^= reader.get(j);
                 }
             }
             reader.adv(8);
@@ -184,13 +180,13 @@ void execute_program(
             case memregion::merkle_root: {
                 uint32_t v0 = *(uint32_t*)merkle_root;
                 uint32_t index = v0 % mem_size;
-                memcpy(temp_result, memPool + index * 8, 32);
+                memcpy(temp_result, mempool + index * 8, 32);
                 break;
             }
             case memregion::prev_hash: {
                 uint32_t v0 = *(uint32_t*)prev_block_hash;
                 uint32_t index = v0 % mem_size;
-                memcpy(temp_result, memPool + index * 8, 32);
+                memcpy(temp_result, mempool + index * 8, 32);
                 break;
             }
             case memregion::unknown:
@@ -203,6 +199,8 @@ void execute_program(
         }
     }
 
-    if (memPool != NULL) free(memPool);
+    if (mempool != NULL) {
+        free(mempool);
+    }
     memcpy(output, temp_result, 32);
 }
