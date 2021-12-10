@@ -51,4 +51,5 @@ void execute_program(
   const unsigned char* blockHeader,
   const program_t& program,
   const char* prev_block_hash,
-  const char* merkle_root);
+  const char* merkle_root,
+  uint32_t** mempool);

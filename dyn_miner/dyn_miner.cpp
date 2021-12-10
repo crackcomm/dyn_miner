@@ -78,7 +78,8 @@ void dyn_miner::start_gpu(uint32_t gpu) {
 }
 #endif
 
-void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index, rand_seed_t rand_seed) {
+void cpu_miner(
+  shared_work_t& shared_work, shares_t& shares, uint32_t index, rand_seed_t rand_seed, uint32_t** mempool) {
     work_t work = shared_work.clone();
     uint32_t nonce = rand_seed.rand_with_index(index);
 
@@ -88,7 +89,7 @@ void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index, ran
 
     unsigned char result[32];
     while (shared_work == work) {
-        execute_program(result, header, work.cpu_program, work.prev_block_hash, work.merkle_root);
+        execute_program(result, header, work.cpu_program, work.prev_block_hash, work.merkle_root, mempool);
         shares.stats.nonce_count++;
 
         uint64_t hash_int = htobe64(*(uint64_t*)&result[0]);
@@ -104,9 +105,11 @@ void cpu_miner(shared_work_t& shared_work, shares_t& shares, uint32_t index, ran
 
 void dyn_miner::start_cpu(uint32_t index) {
     wait_for_work();
+    uint32_t* mempool = (uint32_t*)malloc(sizeof(uint32_t) * 32);
     while (true) {
-        cpu_miner(shared_work, shares, index, rand_seed);
+        cpu_miner(shared_work, shares, index, rand_seed, &mempool);
     }
+    free(mempool);
 }
 
 void dyn_miner::set_job(const json& msg, miner_device device) {

@@ -102,15 +102,16 @@ void execute_program(
   const unsigned char* blockHeader,
   const program_t& program,
   const char* prev_block_hash,
-  const char* merkle_root) {
+  const char* merkle_root,
+  uint32_t** mempool_reusable) {
     // initial input is SHA256 of header data
     CSHA256 ctx;
     ctx.Write(blockHeader, 80);
     uint32_t temp_result[8];
     ctx.Finalize((unsigned char*)temp_result);
 
-    uint32_t mem_size = 0;    // size of current memory pool
-    uint32_t* mempool = NULL; // memory pool
+    uint32_t mem_size = 0;         // size of current memory pool
+    uint32_t* mempool = *mempool_reusable; // memory pool
 
     auto reader = program.reader();
     while (!reader.empty()) {
@@ -140,12 +141,13 @@ void execute_program(
         }
         case hashop::MEMGEN: {
             const hashop hash_op = reader.read_op();
-            mem_size = reader.pop();
-            if (mempool == NULL) {
-                mempool = (uint32_t*)malloc(mem_size * 32);
+            const uint32_t new_mem_size = reader.pop();
+            if (mem_size == 0) {
+                mempool = (uint32_t*)malloc(new_mem_size * 32);
             } else {
-                mempool = (uint32_t*)realloc(mempool, mem_size * 32);
+                mempool = (uint32_t*)realloc(mempool, new_mem_size * 32);
             }
+            mem_size = new_mem_size;
             if (hash_op == hashop::SHA_SINGLE) {
                 for (uint32_t i = 0; i < mem_size; i++) {
                     ctx.Reset();
@@ -157,7 +159,7 @@ void execute_program(
             break;
         }
         case hashop::MEMADD:
-            if (mempool != NULL) {
+            if (mem_size != 0) {
                 for (uint32_t i = 0; i < mem_size; i++) {
                     for (int j = 0; j < 8; j++)
                         mempool[i * 8 + j] += reader.get(j);
@@ -166,7 +168,7 @@ void execute_program(
             reader.adv(8);
             break;
         case hashop::MEMXOR:
-            if (mempool != NULL) {
+            if (mem_size != 0) {
                 for (uint32_t i = 0; i < mem_size; i++) {
                     for (int j = 0; j < 8; j++)
                         mempool[i * 8 + j] ^= reader.get(j);
@@ -200,7 +202,7 @@ void execute_program(
     }
 
     if (mempool != NULL) {
-        free(mempool);
+        *mempool_reusable = mempool;
     }
     memcpy(output, temp_result, 32);
 }
