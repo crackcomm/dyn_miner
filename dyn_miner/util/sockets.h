@@ -2,6 +2,7 @@
 
 #ifdef _WIN32
 #include "Windows.h"
+#include "winsock2.h"
 #else
 #include <netdb.h>
 #endif

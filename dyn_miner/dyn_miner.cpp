@@ -27,9 +27,9 @@
 #include <thread>
 
 #ifdef DEBUG_LOGS
-#define DEBUG_LOG(F, ARGS...) printf(F, ARGS)
+#define DEBUG_LOG(F, ...) printf(F, __VA_ARGS__)
 #else
-#define DEBUG_LOG(F, ARGS...)                                                                                          \
+#define DEBUG_LOG(F, ...)                                                                                              \
     {}
 #endif
 
@@ -312,8 +312,8 @@ int main(int argc, char* argv[]) {
         // send authorization message
         char buf[CBSIZE] = {0};
 
-#define CHECKED_WRITE(fd, FMT, ...)                                                                                \
-    sprintf(buf, FMT, __VA_ARGS__);                                                                                           \
+#define CHECKED_WRITE(fd, FMT, ...)                                                                                    \
+    sprintf(buf, FMT, __VA_ARGS__);                                                                                    \
     DEBUG_LOG("> %s\n", buf);                                                                                          \
     if (write(fd, buf, strlen(buf)) < strlen(buf))
 
