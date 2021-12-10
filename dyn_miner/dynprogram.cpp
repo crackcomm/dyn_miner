@@ -142,7 +142,7 @@ void execute_program(
         case hashop::MEMGEN: {
             const hashop hash_op = reader.read_op();
             const uint32_t new_mem_size = reader.pop();
-            if (mem_size == 0) {
+            if (mempool == NULL) {
                 mempool = (uint32_t*)malloc(new_mem_size * 32);
             } else {
                 mempool = (uint32_t*)realloc(mempool, new_mem_size * 32);
