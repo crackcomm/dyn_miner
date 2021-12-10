@@ -20,6 +20,7 @@ target_include_directories(dyn_miner PUBLIC
 if(WIN32)
   target_include_directories(dyn_miner PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/cpuid)
+  target_link_libraries(dyn_miner PUBLIC wsock32 ws2_32)
 else()
   target_link_libraries(dyn_miner PUBLIC pthread)
 endif()
