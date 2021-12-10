@@ -23,7 +23,7 @@ struct cbuf_t {
 
 inline int read_line(cbuf_t* cbuf, char* dst, unsigned int size) {
     unsigned int i = 0;
-    ssize_t n;
+    size_t n;
     while (i < size) {
         if (cbuf->rpos == cbuf->wpos) {
             size_t wpos = cbuf->wpos % CBSIZE;

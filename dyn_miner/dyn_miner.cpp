@@ -274,7 +274,7 @@ int main(int argc, char* argv[]) {
     cbuf_t cbuf{};
 
 #ifdef _WIN32
-    WSDATA wsa;
+    WSADATA wsa;
     int res = WSAStartup(MAKEWORD(2, 2), &wsa);
     if (res != NO_ERROR) {
         printf("WSAStartup failed with error: %d\n", res);
@@ -312,8 +312,8 @@ int main(int argc, char* argv[]) {
         // send authorization message
         char buf[CBSIZE] = {0};
 
-#define CHECKED_WRITE(fd, FMT, ARGS...)                                                                                \
-    sprintf(buf, FMT, ARGS);                                                                                           \
+#define CHECKED_WRITE(fd, FMT, ...)                                                                                \
+    sprintf(buf, FMT, __VA_ARGS__);                                                                                           \
     DEBUG_LOG("> %s\n", buf);                                                                                          \
     if (write(fd, buf, strlen(buf)) < strlen(buf))
 
