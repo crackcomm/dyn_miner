@@ -20,6 +20,8 @@
 #include <linux/unistd.h> /* for _syscallX macros/related stuff */
 #include <sys/signal.h>
 #include <sys/sysinfo.h>
+
+#include <sched.h>
 #endif
 
 #include <thread>
@@ -104,6 +106,12 @@ void cpu_miner(
 }
 
 void dyn_miner::start_cpu(uint32_t index) {
+#ifdef __linux__
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(index, &set);
+    if (sched_setaffinity(0, sizeof(set), &set) < 0) printf("sched_setaffinity failed\n");
+#endif
     wait_for_work();
     uint32_t* mempool = (uint32_t*)malloc(sizeof(uint32_t) * 32);
     while (true) {
