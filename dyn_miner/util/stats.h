@@ -7,7 +7,7 @@
 #include <string>
 
 #ifdef _WIN32
-#include "Windows.h"
+#include "WinCon.h"
 #endif
 
 constexpr auto BLACK = 0;
