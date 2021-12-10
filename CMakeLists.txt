@@ -7,15 +7,15 @@ option(GPU_MINER "Build with GPU miner" OFF)
 option(DEBUG_LOGS "Build with debug logs" OFF)
 
 if(USE_ASM)
-  add_definitions(-DUSE_ASM -DENABLE_AVX2 -DENABLE_SSE41)
+  add_compile_definitions(USE_ASM ENABLE_AVX2 ENABLE_SSE41)
 endif()
 
 if(GPU_MINER)
-  add_definitions(-DGPU_MINER)
+  add_compile_definitions(GPU_MINER)
 endif()
 
 if(DEBUG_LOGS)
-  add_definitions(-DDEBUG_LOGS)
+  add_compile_definitions(DEBUG_LOGS)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
