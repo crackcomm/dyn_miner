@@ -15,12 +15,13 @@ add_executable(dyn_miner
 target_include_directories(dyn_miner PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/core
   ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(dyn_miner PUBLIC pthread)
 
 # On linux it conflicts with already existing cpuid headers
 if(WIN32)
   target_include_directories(dyn_miner PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/cpuid)
+else()
+  target_link_libraries(dyn_miner PUBLIC pthread)
 endif()
 
 if(GPU_MINER)
