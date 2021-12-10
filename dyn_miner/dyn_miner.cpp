@@ -84,7 +84,7 @@ void dyn_miner::start_gpu(uint32_t gpu) {
 #endif
 
 void cpu_miner(
-  shared_work_t& shared_work, shares_t& shares, uint32_t index, rand_seed_t rand_seed, uint32_t** mempool) {
+  shared_work_t& shared_work, shares_t& shares, uint32_t index, rand_seed_t rand_seed, mempool_t& mempool) {
     work_t work = shared_work.clone();
     uint32_t nonce = rand_seed.rand_with_index(index);
 
@@ -116,11 +116,10 @@ void dyn_miner::start_cpu(uint32_t index) {
     if (sched_setaffinity(0, sizeof(set), &set) < 0) printf("sched_setaffinity failed\n");
 #endif
     wait_for_work();
-    uint32_t* mempool = (uint32_t*)malloc(sizeof(uint32_t) * 32);
+    mempool_t mempool = mempool_t(32 * 32);
     while (true) {
-        cpu_miner(shared_work, shares, index, rand_seed, &mempool);
+        cpu_miner(shared_work, shares, index, rand_seed, mempool);
     }
-    free(mempool);
 }
 
 void dyn_miner::set_job(const json& msg, miner_device device) {

@@ -1,8 +1,9 @@
 #pragma once
 
+#include <limits>
+#include <memory>
 #include <string>
 #include <vector>
-#include <limits>
 
 enum class hashop : uint32_t {
     ADD = 0,
@@ -46,10 +47,36 @@ struct program_t {
 
 program_t program_to_bytecode(const std::vector<std::string>& program);
 
+struct free_delete {
+    void operator()(uint32_t* bc) { free(bc); }
+};
+
+using mempool_ptr = std::unique_ptr<uint32_t, free_delete>;
+
+struct mempool_t {
+    mempool_ptr ptr;
+    std::size_t size;
+
+    mempool_t(const mempool_t&) = delete;
+
+    mempool_t(std::size_t size) {
+        ptr.reset((uint32_t*)malloc(size));
+        size = size;
+    }
+
+    inline void resize(std::size_t new_size) {
+        if (size >= new_size) return;
+        ptr.reset((uint32_t*)realloc(ptr.release(), new_size));
+    }
+
+    inline uint32_t& operator[](const std::size_t index) const { return ptr.get()[index]; }
+    inline uint32_t* get() const { return ptr.get(); }
+};
+
 void execute_program(
   unsigned char* output,
   const unsigned char* blockHeader,
   const program_t& program,
   const char* prev_block_hash,
   const char* merkle_root,
-  uint32_t** mempool);
+  mempool_t& mempool);

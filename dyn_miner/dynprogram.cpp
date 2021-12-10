@@ -103,15 +103,14 @@ void execute_program(
   const program_t& program,
   const char* prev_block_hash,
   const char* merkle_root,
-  uint32_t** mempool_reusable) {
+  mempool_t& mempool) {
     // initial input is SHA256 of header data
     CSHA256 ctx;
     ctx.Write(blockHeader, 80);
     uint32_t temp_result[8];
     ctx.Finalize((unsigned char*)temp_result);
 
-    uint32_t mem_size = 0;         // size of current memory pool
-    uint32_t* mempool = *mempool_reusable; // memory pool
+    uint32_t mem_size = 0; // size of current memory pool
 
     auto reader = program.reader();
     while (!reader.empty()) {
@@ -142,18 +141,14 @@ void execute_program(
         case hashop::MEMGEN: {
             const hashop hash_op = reader.read_op();
             const uint32_t new_mem_size = reader.pop();
-            if (mempool == NULL) {
-                mempool = (uint32_t*)malloc(new_mem_size * 32);
-            } else {
-                mempool = (uint32_t*)realloc(mempool, new_mem_size * 32);
-            }
+            mempool.resize(new_mem_size * 32);
             mem_size = new_mem_size;
             if (hash_op == hashop::SHA_SINGLE) {
                 for (uint32_t i = 0; i < mem_size; i++) {
                     ctx.Reset();
                     ctx.Write((unsigned char*)temp_result, 32);
                     ctx.Finalize((unsigned char*)temp_result);
-                    memcpy(mempool + i * 8, temp_result, 32);
+                    memcpy(mempool.get() + i * 8, temp_result, 32);
                 }
             }
             break;
@@ -182,13 +177,13 @@ void execute_program(
             case memregion::merkle_root: {
                 uint32_t v0 = *(uint32_t*)merkle_root;
                 uint32_t index = v0 % mem_size;
-                memcpy(temp_result, mempool + index * 8, 32);
+                memcpy(temp_result, mempool.get() + index * 8, 32);
                 break;
             }
             case memregion::prev_hash: {
                 uint32_t v0 = *(uint32_t*)prev_block_hash;
                 uint32_t index = v0 % mem_size;
-                memcpy(temp_result, mempool + index * 8, 32);
+                memcpy(temp_result, mempool.get() + index * 8, 32);
                 break;
             }
             case memregion::unknown:
@@ -199,10 +194,6 @@ void execute_program(
         case hashop::UNKNOWN:
             break;
         }
-    }
-
-    if (mempool != NULL) {
-        *mempool_reusable = mempool;
     }
     memcpy(output, temp_result, 32);
 }
