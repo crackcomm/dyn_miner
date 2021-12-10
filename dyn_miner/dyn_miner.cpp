@@ -1,6 +1,9 @@
 // dyn_miner.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+// prevent inclusion of <winsock.h> in windows.h
+#define _WINSOCKAPI_
+
 #include "dyn_stratum.h"
 #include "dynprogram.h"
 #include "nlohmann/json.hpp"

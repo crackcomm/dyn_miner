@@ -1,7 +1,8 @@
 #include "nlohmann/json.hpp"
 
 #ifdef _WIN32
-#include "winsock2.h"
+#define _WINSOCKAPI_
+#include <winsock2.h>
 #else
 #include <netdb.h>
 #endif

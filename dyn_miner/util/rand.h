@@ -7,7 +7,7 @@
 #include <ctime>
 
 #ifdef _WIN32
-#include "sysinfoapi.h"
+#include <Windows.h>
 #endif
 
 inline uint32_t rand_nonce() {
