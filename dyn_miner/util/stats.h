@@ -28,10 +28,10 @@ constexpr auto YELLOW = 14;
 constexpr auto WHITE = 15;
 
 // For displaying Hashrate in easy-to-read format.
-constexpr float tb = 1099511627776;
-constexpr float gb = 1073741824;
-constexpr float mb = 1048576;
-constexpr float kb = 1024;
+constexpr double tb = 1099511627776;
+constexpr double gb = 1073741824;
+constexpr double mb = 1048576;
+constexpr double kb = 1024;
 
 static std::string seconds_to_uptime(int n);
 
@@ -45,22 +45,22 @@ static bool output_stats(time_t now, time_t start, stats_t& stats) {
 #ifdef _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 #endif
-    uint32_t nonce = stats.nonce_count.load(std::memory_order_relaxed);
+    uint64_t nonce = stats.nonce_count.load(std::memory_order_relaxed);
 
     struct tm* timeinfo;
     char timestamp[80];
     timeinfo = localtime(&now);
     strftime(timestamp, 80, "%F %T", timeinfo);
     char display[256];
-    float hashrate = (float)nonce / (float)(now - start);
+    double hashrate = (double)nonce / (double)(now - start);
     if (hashrate >= tb)
-        sprintf(display, "%.2f TH/s", (float)hashrate / tb);
+        sprintf(display, "%.2f TH/s", (double)hashrate / tb);
     else if (hashrate >= gb && hashrate < tb)
-        sprintf(display, "%.2f GH/s", (float)hashrate / gb);
+        sprintf(display, "%.2f GH/s", (double)hashrate / gb);
     else if (hashrate >= mb && hashrate < gb)
-        sprintf(display, "%.2f MH/s", (float)hashrate / mb);
+        sprintf(display, "%.2f MH/s", (double)hashrate / mb);
     else if (hashrate >= kb && hashrate < mb)
-        sprintf(display, "%.2f KH/s", (float)hashrate / kb);
+        sprintf(display, "%.2f KH/s", (double)hashrate / kb);
     else if (hashrate < kb)
         sprintf(display, "%.2f H/s ", hashrate);
     else
@@ -83,7 +83,7 @@ static bool output_stats(time_t now, time_t start, stats_t& stats) {
     SET_COLOR(LIGHTGRAY);
     printf(" | ");
     SET_COLOR(LIGHTGREEN);
-    printf("S: %4d", stats.share_count.load(std::memory_order_relaxed));
+    printf("S: %4lu", stats.share_count.load(std::memory_order_relaxed));
     SET_COLOR(GREEN);
     printf("/%-4d", stats.accepted_share_count.load(std::memory_order_relaxed));
     SET_COLOR(LIGHTGRAY);
@@ -97,7 +97,7 @@ static bool output_stats(time_t now, time_t start, stats_t& stats) {
     SET_COLOR(LIGHTGRAY);
     printf(" | ");
     SET_COLOR(LIGHTGREEN);
-    printf("N:%-8d", nonce);
+    printf("N:%-8lu", nonce);
     SET_COLOR(LIGHTGRAY);
     printf(" | ");
     SET_COLOR(LIGHTMAGENTA);
