@@ -2,20 +2,55 @@
 
 This repository contains reference implementations of DYNAMO miners on both GPU and CPU.
 
-## Build
+## Linux
 
-### Linux
+### Build dependencies
+
+#### CMake
+
+Requires CMake version >= 3.12.
+
+In order to install CMake 3.21.3 on Linux you can use following command:
+
+```sh
+wget https://github.com/Kitware/CMake/releases/download/v3.21.3/cmake-3.21.3-linux-x86_64.sh -O /tmp/cmake-install.sh && \
+  chmod +x /tmp/cmake-install.sh && \
+  /tmp/cmake-install.sh --skip-license --prefix=/usr
+```
+
+#### Clang
+
+Clang is a preferred over GCC. Support of latest C++20 features are expected.
+
+In order to install clang 13 on Ubuntu you can use following command:
+
+```sh
+apt-get update && apt-get install -qy lsb-release wget software-properties-common
+
+add-apt-repository ppa:ubuntu-toolchain-r/test
+wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-13 main" >> /etc/apt/sources.list.d/llvm-toolchain.list && \
+    echo "deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-13 main" >> /etc/apt/sources.list.d/llvm-toolchain.list
+
+apt-get update && apt-get install -qy clang-13 lldb-13 lld-13 libc++-13-dev libc++abi-13-dev
+
+update-alternatives --install /usr/local/bin/clang clang $(which clang-13) 10
+update-alternatives --install /usr/local/bin/clang++ clang++ $(which clang++-13) 10
+update-alternatives --install /usr/local/bin/lld lld $(which lld-13) 10
+```
+
+### Build from source
 
 ```sh
 git clone -b pool-miner https://github.com/crackcomm/dyn_miner.git
 cd dyn_miner
 mkdir build
 cd build
-cmake .. -DGPU_MINER=ON
+cmake .. -DGPU_MINER=ON 
 make -j`nproc`
 ```
 
-### Windows
+## Windows
 
 This repo contains the Windows project files built in Visual Studio 2019.
 
