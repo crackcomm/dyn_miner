@@ -50,6 +50,12 @@ cmake .. -DGPU_MINER=ON
 make -j`nproc`
 ```
 
+In order to generate binary for current machine enable `NATIVE_BUILD`.
+
+```sh
+cmake .. -DGPU_MINER=ON -DNATIVE_BUILD=ON
+```
+
 ## Windows
 
 This repo contains the Windows project files built in Visual Studio 2019.
