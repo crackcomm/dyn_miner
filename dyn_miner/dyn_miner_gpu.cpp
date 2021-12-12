@@ -402,8 +402,8 @@ void CDynProgramGPU::start_miner(
         for (uint32_t k = 0; k < numComputeUnits; k++) {
             // read last 8 bytes of hash as [uint64_t] target
             uint64_t hash_int{};
-            unsigned char* hash = (unsigned char*)&kernel.buffHashResult[gpu][k * 8];
-            memcpy(&hash_int, &hash[24], 8);
+            memcpy(&hash_int, &kernel.buffHashResult[gpu][k * 8], 8);
+            hash_int = htobe64(hash_int);
             // hash target should be lower than share target
             if (hash_int <= work.share_target) {
                 // append share to queue
