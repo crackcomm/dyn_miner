@@ -56,6 +56,12 @@ In order to generate binary for current machine enable `NATIVE_BUILD`.
 cmake .. -DGPU_MINER=ON -DNATIVE_BUILD=ON
 ```
 
+In order to specify C++ compiler use `CMAKE_CXX_COMPILER`.
+
+```sh
+cmake .. -DGPU_MINER=ON -DCMAKE_CXX_COMPILER="$(which clang++)"
+```
+
 ## Windows
 
 This repo contains the Windows project files built in Visual Studio 2019.
