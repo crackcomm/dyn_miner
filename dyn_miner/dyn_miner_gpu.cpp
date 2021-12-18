@@ -343,7 +343,6 @@ void CDynProgramGPU::start_miner(
     // allocate flag to indicate hash found for each compute unit (this is for later)
     // call kernel code with program, block header, memory buffer, result buffer and flag as params
     const work_t work = shared_work.clone();
-    load_byte_code(work);
     cl_int returnVal;
 
     uint32_t nonce = rand_seed.rand_with_index(gpu);

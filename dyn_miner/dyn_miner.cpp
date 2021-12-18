@@ -138,12 +138,6 @@ void dyn_miner::set_job(const json& msg, miner_device device) {
 
     // set work program
     const std::string& program = params[8];
-    [[maybe_unused]] const bool init_gpu = work.set_program(program);
-#ifdef GPU_MINER
-    if (device == miner_device::GPU && (init_gpu || gpu_program.kernel.kernel == NULL)) {
-        gpu_program.kernel.initOpenCL(gpu_platform_id, compute_units, work.program);
-    }
-#endif
 
     unsigned char coinbase[4 * 1024] = {0};
     hex2bin(coinbase, coinb1.c_str(), coinb1.size());
@@ -184,6 +178,17 @@ void dyn_miner::set_job(const json& msg, miner_device device) {
     memcpy(work.native_data + 73, &bits[2], 1);
     memcpy(work.native_data + 74, &bits[1], 1);
     memcpy(work.native_data + 75, &bits[0], 1);
+
+    // set work program
+    [[maybe_unused]] const bool init_gpu = work.set_program(program);
+#ifdef GPU_MINER
+    if (device == miner_device::GPU) {
+        if (init_gpu || gpu_program.kernel.kernel == NULL) {
+            gpu_program.kernel.initOpenCL(gpu_platform_id, compute_units, work.program);
+        }
+        gpu_program.load_byte_code(work);
+    }
+#endif
 
     // set work number for reloading
     work.num = ++shared_work.num;
