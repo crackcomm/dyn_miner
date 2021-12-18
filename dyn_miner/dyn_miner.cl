@@ -222,12 +222,11 @@ __kernel void dyn_hash (__global uint* byteCode, __global uint* memGenBuffer, in
     sha256 ( computeUnitID, 80, myHeader, myHashResult );
 
     uint linePtr = 0;
-    uint done = 0;
     uint currentMemSize = 0;
     uint instruction = 0;
 
     
-    while (done == 0) {
+    while (true) {
 
         if (byteCode[linePtr] == HASHOP_ADD) {
             linePtr++;
@@ -313,17 +312,8 @@ __kernel void dyn_hash (__global uint* byteCode, __global uint* memGenBuffer, in
         }
 
 
-        else if (byteCode[linePtr] == HASHOP_END) {
-            done = 1;
+        else {
+            break;
         }
-
-
-        //failsafe
-        if (linePtr > 1000)
-            done = 1;        
-
     }
-    
-
-
 }
