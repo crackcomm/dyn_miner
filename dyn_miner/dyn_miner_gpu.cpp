@@ -13,6 +13,7 @@
 #include <Windows.h>
 #if BYTE_ORDER == LITTLE_ENDIAN
 #if defined(_MSC_VER)
+#include <stdlib.h>
 #define htobe64(x) _byteswap_uint64(x)
 #elif defined(__GNUC__) || defined(__clang__)
 #define htobe64(x) __builtin_bswap64(x)
