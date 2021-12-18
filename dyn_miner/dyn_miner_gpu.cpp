@@ -9,6 +9,21 @@
 #include <iterator>
 #include <sstream>
 
+#ifdef _WIN32
+#include <Windows.h>
+#if BYTE_ORDER == LITTLE_ENDIAN
+#if defined(_MSC_VER)
+#define htobe64(x) _byteswap_uint64(x)
+#elif defined(__GNUC__) || defined(__clang__)
+#define htobe64(x) __builtin_bswap64(x)
+#else
+#error platform not supported
+#endif // end if platform
+#endif // end if BYTE_ORDER == LITTLE_ENDIAN
+#else
+#include <endian.h>
+#endif
+
 static std::vector<uint32_t> executeAssembleByteCode(
   uint32_t* largestMemgen, const std::vector<std::string>& program, const char* prevBlockHash, const char* merkleRoot) {
     std::vector<uint32_t> code;
