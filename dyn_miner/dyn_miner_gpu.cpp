@@ -23,6 +23,7 @@
 #endif // end if BYTE_ORDER == LITTLE_ENDIAN
 #else
 #include <endian.h>
+#include <unistd.h>
 #endif
 
 static std::vector<uint32_t> executeAssembleByteCode(
@@ -184,7 +185,7 @@ void CDynGPUKernel::print() {
 }
 
 void CDynGPUKernel::initOpenCL(int platformID, int computeUnits, const std::vector<std::string>& program) {
-    std::array<std::string, 2> paths{"dyn_miner.cl", "dyn_miner/dyn_miner.cl"};
+    std::vector<std::string> paths{"dyn_miner.cl", "dyn_miner/dyn_miner.cl"};
     std::string kernel_source{};
     for (auto& path : paths) {
 #ifdef _WIN32

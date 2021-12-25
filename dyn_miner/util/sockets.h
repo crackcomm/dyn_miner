@@ -5,6 +5,7 @@
 #include <winsock2.h>
 #else
 #include <netdb.h>
+#include <unistd.h>
 #endif
 
 #ifdef _WIN32
