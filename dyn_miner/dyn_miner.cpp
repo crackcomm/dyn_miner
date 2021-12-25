@@ -333,14 +333,6 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        // send suggest difficulty
-        double suggest_diff = 1;
-        CHECKED_WRITE(
-          cbuf.fd, "{\"params\": [%.8f], \"id\": \"diff\", \"method\": \"mining.suggest_difficulty\"}", suggest_diff) {
-            printf("Failed to write suggest difficulty\n");
-            continue;
-        }
-
         // spawn a thread writing shares
         std::thread([&miner, user = rpc.user, fd = cbuf.fd]() {
             char buf[CBSIZE] = {0};
@@ -399,8 +391,6 @@ int main(int argc, char* argv[]) {
                     if (!result) {
                         printf("Failed authentication as %s\n", rpc.user);
                     }
-                } else if (resp == "diff") {
-                    miner.set_difficulty(suggest_diff);
                 } else {
                     const bool result = msg["result"];
                     if (!result) {
